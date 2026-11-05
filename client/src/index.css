@@ -1,0 +1,83 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-primary: #f4a7b9;
+  --color-secondary: #fce4ec;
+  --color-surface: #fff9fb;
+  --color-lavender: #e6d9f2;
+  --color-sage: #dcebdd;
+  --color-sky: #dceaf7;
+  --color-ink: #333333;
+  /* Darker than the palette's #777 for accessible small text on tinted surfaces. */
+  --color-muted: #696369;
+  --color-line: #eee6e9;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply m-0 min-w-[320px] bg-surface font-sans text-ink antialiased;
+  }
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+  a:focus-visible,
+  button:focus-visible {
+    outline: 3px solid #a64b68;
+    outline-offset: 4px;
+  }
+  main:focus {
+    outline: none;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-white shadow-[0_4px_24px_-12px_#78556320];
+  }
+  .button-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-[#ef96ac];
+  }
+  .button-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-white px-5 py-3 text-sm font-medium transition-colors hover:bg-surface;
+  }
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.16em] text-[#98506a];
+  }
+  .skip-link {
+    @apply fixed top-3 left-3 z-50 -translate-y-24 rounded-lg bg-ink px-4 py-3 text-sm text-white focus:translate-y-0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer components {
+  .field {
+    @apply mt-1 block min-h-11 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink;
+  }
+}
+@layer base {
+  label {
+    @apply text-sm font-medium;
+  }
+  input:focus-visible,
+  select:focus-visible {
+    outline: 2px solid #a64b68;
+    outline-offset: 2px;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+}

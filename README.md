@@ -1,394 +1,179 @@
-
 # Pink Pocket
 
-A full-stack personal finance application designed to help users track expenses, manage budgets, and better understand their spending habits through an intuitive dashboard and data visualization.
-
-## Overview
-
-Pink Pocket provides a centralized platform for managing personal finances. Users can record income and expenses, organize transactions into categories, set monthly budgets, and monitor their financial activity over time.
-
-The project focuses on building a responsive, user-friendly application while implementing core software engineering concepts such as RESTful API development, authentication, relational database management, and data visualization.
-
-## Tech Stack
-
-### Frontend
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- Recharts
-- Lucide React
-
-### Backend
-- Node.js
-- Express.js
-- TypeScript
-- Prisma ORM
-
-### Database
-- PostgreSQL
-
-### Authentication
-- JSON Web Tokens (JWT)
-- bcrypt for password hashing
-
-### Development Tools
-- Git & GitHub
-- Visual Studio Code
-- Postman
-- Docker (optional)
+A lightweight personal expense tracker with secure accounts, transaction tracking,
+monthly budgets, and clear financial summaries. Built for local testing with native
+PostgreSQL on macOS; Docker is not required.
 
 ## Features
 
-### 1. User Authentication
-- User registration and login
-- Secure password hashing
-- JWT-based authentication
-- Protected routes
-- User-specific financial data
+- Registration, login, logout, and protected pages.
+- Income/expense CRUD with default categories, optional descriptions, and dates.
+- Month, category, and type filters; description search and pagination.
+- One overall budget per month, remaining amount, usage, and overspending alerts.
+- Dashboard with all-time balance, monthly totals, recent transactions, and category spending.
+- Six-month income/expense charts and category breakdowns.
+- Account name/email and preferred display currency settings.
+- Responsive pink/white interface with loading, error, and empty states.
 
-### 2. Dashboard
-- Total income and expenses
-- Current balance
-- Monthly spending summary
-- Recent transactions
-- Budget progress indicators
-- Interactive financial charts
+## Stack and structure
 
-### 3. Transaction Management
-- Add, edit, and delete transactions
-- Record transaction amounts, dates, and descriptions
-- Classify transactions as income or expenses
-- Assign categories to transactions
-- Filter transactions by date, category, or type
-- Search transaction history
+- `client/`: React, TypeScript, Vite, Tailwind CSS, React Router, Recharts, Lucide.
+- `server/`: Node.js, Express, TypeScript, Prisma, PostgreSQL, Zod, bcrypt, JWT.
+- Tests: Vitest, Supertest, and Playwright (desktop/mobile Chrome).
 
-### 4. Budget Management
-- Create monthly budgets
-- Set spending limits for individual categories
-- Track budget usage
-- Display remaining budget amounts
-- Highlight exceeded budgets
+Backend routing, validation, business services, middleware, and database access
+are separated under `server/src/`. Frontend components, pages, hooks, contexts,
+services, and types are under `client/src/`.
 
-### 5. Financial Analytics
-- Monthly income and expense trends
-- Spending breakdown by category
-- Visualize financial data using charts
-- Compare spending across different periods
-- Identify major spending categories
+## Local setup
 
-### 6. User Settings
-- Update account information
-- Manage expense categories
-- Select preferred currency
-- Customize application preferences
+Requires Node.js 22.12+ (Node 24 LTS recommended), npm, and PostgreSQL 17.
+On the current Mac, PostgreSQL and the databases are already configured on port
+**5433**. A separate existing instance on port 5432 is left untouched.
 
-## UI/UX Design
-
-The application will use a modern, minimal interface with a consistent color system, responsive layouts, and accessible components.
-
-### Color Palette
-
-| Purpose | Color | HEX |
-|---------|-------|-----|
-| Primary | Soft Pink | `#F4A7B9` |
-| Secondary | Light Pink | `#FCE4EC` |
-| Background | White | `#FFFFFF` |
-| Surface | Off-White | `#FFF9FB` |
-| Accent 1 | Lavender | `#E6D9F2` |
-| Accent 2 | Sage Green | `#DCEBDD` |
-| Accent 3 | Light Blue | `#DCEAF7` |
-| Primary Text | Dark Gray | `#333333` |
-| Secondary Text | Muted Gray | `#777777` |
-
-### Design Guidelines
-- Clean and consistent layouts
-- Rounded cards and buttons
-- Subtle shadows and borders
-- Clear typography and visual hierarchy
-- Responsive design for desktop and mobile
-- Consistent spacing and reusable components
-- Accessible form controls and navigation
-- Interactive charts with clear labels
-
-## Application Pages
-
-### Landing Page
-- Application introduction
-- Key features
-- Login and registration navigation
-
-### Authentication Pages
-- Login form
-- Registration form
-- Form validation and error handling
-
-### Dashboard
-- Financial summary cards
-- Monthly expense visualization
-- Budget overview
-- Recent transaction activity
-
-### Transactions
-- Transaction table or list
-- Add and edit transaction forms
-- Search and filtering options
-- Delete transaction functionality
-
-### Budgets
-- Monthly budget creation
-- Category-level spending limits
-- Budget progress visualization
-
-### Analytics
-- Income and expense charts
-- Category spending distribution
-- Monthly financial comparisons
-
-### Settings
-- Account preferences
-- Currency selection
-- Category management
-
-## System Architecture
-
-The application follows a client-server architecture.
-
-```text
-React + TypeScript
-       |
-       | HTTP Requests
-       v
-Node.js + Express REST API
-       |
-       | Prisma ORM
-       v
-   PostgreSQL
+```bash
+brew services start postgresql@17
+cd /Users/havu/pink-pocket/server
+npm ci
+npm run db:generate
+npm run db:deploy
+npm run db:check
+npm run dev
 ```
 
-### Frontend Responsibilities
-- Render application components
-- Manage client-side state
-- Handle forms and user interactions
-- Communicate with backend APIs
-- Display charts and financial summaries
+In another terminal:
 
-### Backend Responsibilities
-- Authenticate users
-- Validate incoming requests
-- Process financial transactions
-- Calculate financial summaries
-- Enforce user-level data access
-- Communicate with the database
-
-## Database Design
-
-The initial database contains four primary models.
-
-### User
-
-| Field | Type |
-|-------|------|
-| id | UUID (Primary Key) |
-| name | String |
-| email | String (Unique) |
-| passwordHash | String |
-| createdAt | DateTime |
-
-### Transaction
-
-| Field | Type |
-|-------|------|
-| id | UUID (Primary Key) |
-| userId | UUID (Foreign Key) |
-| categoryId | UUID (Foreign Key) |
-| amount | Decimal |
-| type | Enum (INCOME, EXPENSE) |
-| description | String |
-| date | DateTime |
-| createdAt | DateTime |
-
-### Category
-
-| Field | Type |
-|-------|------|
-| id | UUID (Primary Key) |
-| userId | UUID (Foreign Key) |
-| name | String |
-| type | Enum (INCOME, EXPENSE) |
-| color | String |
-
-### Budget
-
-| Field | Type |
-|-------|------|
-| id | UUID (Primary Key) |
-| userId | UUID (Foreign Key) |
-| categoryId | UUID (Foreign Key) |
-| amount | Decimal |
-| month | Integer |
-| year | Integer |
-
-### Relationships
-
-- One User has many Transactions.
-- One User has many Categories.
-- One User has many Budgets.
-- One Category has many Transactions.
-- One Category can have multiple Budgets across different months.
-- Each Budget belongs to one User and one Category.
-
-## REST API Endpoints
-
-### Authentication
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register a user |
-| POST | `/api/auth/login` | Authenticate a user |
-| GET | `/api/auth/me` | Get authenticated user |
-
-### Transactions
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/transactions` | Retrieve transactions |
-| POST | `/api/transactions` | Create a transaction |
-| GET | `/api/transactions/:id` | Retrieve a transaction |
-| PUT | `/api/transactions/:id` | Update a transaction |
-| DELETE | `/api/transactions/:id` | Delete a transaction |
-
-### Categories
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/categories` | Retrieve categories |
-| POST | `/api/categories` | Create a category |
-| PUT | `/api/categories/:id` | Update a category |
-| DELETE | `/api/categories/:id` | Delete a category |
-
-### Budgets
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/budgets` | Retrieve budgets |
-| POST | `/api/budgets` | Create a budget |
-| PUT | `/api/budgets/:id` | Update a budget |
-| DELETE | `/api/budgets/:id` | Delete a budget |
-
-### Analytics
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/analytics/summary` | Get financial summary |
-| GET | `/api/analytics/monthly` | Get monthly trends |
-| GET | `/api/analytics/categories` | Get spending by category |
-
-## Security
-
-- Hash passwords before database storage.
-- Validate and sanitize incoming data.
-- Protect private API endpoints with authentication.
-- Verify record ownership before reading or modifying data.
-- Store sensitive configuration in environment variables.
-- Do not commit credentials or environment files.
-- Configure CORS for approved frontend origins.
-- Implement secure authentication and error handling.
-- Use HTTPS in production.
-
-## Project Structure
-
-```text
-pink-pocket/
-│
-├── client/
-│   ├── public/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── hooks/
-│   │   ├── services/
-│   │   ├── contexts/
-│   │   ├── types/
-│   │   ├── utils/
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   └── package.json
-│
-├── server/
-│   ├── prisma/
-│   │   └── schema.prisma
-│   ├── src/
-│   │   ├── controllers/
-│   │   ├── routes/
-│   │   ├── middleware/
-│   │   ├── services/
-│   │   ├── utils/
-│   │   └── index.ts
-│   └── package.json
-│
-├── .gitignore
-├── README.md
-└── LICENSE
+```bash
+cd /Users/havu/pink-pocket/client
+npm ci
+npm run dev -- --port 5174 --strictPort
 ```
 
-Note: This structure represents the planned architecture and will be implemented incrementally.
+Open **http://localhost:5174** and create an account. Backend health:
+**http://127.0.0.1:3001/api/health**. There are no seeded accounts or financial data.
+If a server is already running on the chosen port, use its existing terminal or
+stop that project server before starting another. Do not stop unrelated services.
 
-## Development Roadmap
+See [server/README.md](server/README.md) for first-time native PostgreSQL installation,
+role/database creation, and troubleshooting on another Mac.
 
-### Phase 1: Project Setup
-- [ ] Initialize React + TypeScript frontend
-- [ ] Configure Tailwind CSS
-- [ ] Create initial application layout
-- [ ] Set up Express + TypeScript backend
-- [ ] Configure PostgreSQL and Prisma
-- [ ] Establish frontend-backend communication
+### Environment variables
 
-### Phase 2: Authentication
-- [ ] Implement user registration
-- [ ] Implement user login
-- [ ] Add password hashing
-- [ ] Implement JWT authentication
-- [ ] Add protected routes
+Existing ignored `server/.env` and `.env.test` files were configured locally.
+For a fresh checkout, copy the corresponding example files and supply your own
+PostgreSQL password and random JWT secret. Do not overwrite existing configuration.
 
-### Phase 3: Transaction Management
-- [ ] Design transaction database model
-- [ ] Implement transaction CRUD APIs
-- [ ] Create transaction forms
-- [ ] Display transaction history
-- [ ] Implement filtering and searching
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL URL; development DB `pink_pocket`, test DB `pink_pocket_test` |
+| `JWT_SECRET` | Random signing secret, at least 32 characters (`openssl rand -hex 48`) |
+| `FRONTEND_ORIGINS` | Comma-separated exact browser origins; local examples include ports 5173/5174 |
+| `HOST`, `PORT` | API listener; defaults `127.0.0.1`, `3001` |
+| `NODE_ENV` | `development`, `test`, or `production` |
 
-### Phase 4: Budgeting and Dashboard
-- [ ] Implement budget CRUD functionality
-- [ ] Calculate monthly financial summaries
-- [ ] Build dashboard components
-- [ ] Add budget progress indicators
-- [ ] Integrate financial charts
+The frontend calls `/api` through Vite's proxy; no frontend secrets or environment
+file are needed. Optional `API_PROXY_TARGET` changes the proxy target for isolated
+tests. If you change the browser port, update `FRONTEND_ORIGINS` too.
 
-### Phase 5: Testing and Deployment
-- [ ] Implement frontend and backend tests
-- [ ] Validate API error handling
-- [ ] Improve responsive design
-- [ ] Perform accessibility checks
-- [ ] Deploy frontend and backend
-- [ ] Configure production database
-- [ ] Update documentation with live demo and screenshots
+## Testing
 
-## Future Enhancements
+From `server/`:
 
-Potential features for future versions include:
+```bash
+npm run db:validate
+npm run typecheck
+npm run build
+npm test
+# Apply migrations only to the dedicated test database:
+node --env-file=.env.test node_modules/prisma/build/index.js migrate deploy
+npm run test:db
+```
 
-- Recurring transactions
-- CSV transaction import and export
-- Savings goals
-- Custom financial reports
-- Spending insights and recommendations
-- Multi-currency support
-- Payment and subscription tracking
+From `client/`:
 
-## Project Status
+```bash
+npm run build
+npm run lint
+npm run format:check
+npm run test:e2e
+```
 
-**In Development**
+Playwright starts isolated API/frontend servers on ports 3002/5180 and uses
+`server/.env.test`. It uses installed Google Chrome on macOS; without Chrome,
+run `npx playwright install chromium` once. Tests refuse a database name not ending
+in `_test`. API/browser test accounts use unique IDs and only their own records
+are removed during cleanup. Schema tests roll back their fixtures.
 
-Pink Pocket is currently being developed as a personal software engineering project. Features will be implemented incrementally according to the development roadmap.
+## API
 
+Successful responses use `{ "data": ... }`; errors use
+`{ "error": { "code": "...", "message": "..." } }`.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/health` | Database readiness |
+| POST | `/api/auth/register`, `/api/auth/login` | Start session |
+| GET | `/api/auth/me` | Current user and CSRF token |
+| POST | `/api/auth/logout` | Revoke session |
+| GET | `/api/categories` | Current user's default categories |
+| GET, POST | `/api/transactions` | List or create |
+| PUT, DELETE | `/api/transactions/:id` | Update or delete |
+| GET, PUT | `/api/budgets` | Read or upsert monthly budget |
+| GET | `/api/dashboard/summary` | Balance, totals, budget, recent records, breakdown |
+| GET | `/api/analytics` | Six monthly income/expense totals |
+| PUT | `/api/settings` | Update account/display currency |
+
+Monthly endpoints accept `month` and `year`. Transaction lists additionally accept
+`categoryId`, `type`, `search`, `page`, and `pageSize` (maximum 100). Supply both
+month/year or neither. Amounts are positive decimal **strings** with up to two
+decimal places; dates are `YYYY-MM-DD`. Types are `INCOME` or `EXPENSE`.
+
+## Security and data conventions
+
+- bcrypt hashes; JWT in an HttpOnly, SameSite=Lax cookie, Secure in production.
+- Sessions are stored in PostgreSQL, expire after seven days, and are revoked on logout.
+- Writes require an allowed Origin; authenticated writes also require the session's
+  `X-CSRF-Token`. Tokens stay in memory, never localStorage.
+- Authentication is rate-limited; all financial queries enforce ownership.
+- Category ownership/type and monthly budget uniqueness are enforced in PostgreSQL.
+- Monetary calculations use Prisma Decimal and fixed two-decimal response strings.
+  Chart geometry uses numeric approximations; displayed amounts retain exact cents.
+- Transaction dates are date-only; monthly API boundaries and omitted dates use UTC.
+  The browser defaults forms to the user's local calendar date.
+- Current balance spans all recorded dates. Other dashboard figures use the selected month.
+- Schema updates use additive migrations; no database reset is part of setup.
+
+## Scope and limitations
+
+Ready for local testing; public hosting has not been deployed or verified. For
+hosting, serve frontend and API under one HTTPS origin, forward `/api` to Express,
+and rewrite application routes to `index.html`. `npm start` runs the built API;
+Vite preview is for local build inspection.
+
+Currency changes are display preferences and do not convert amounts. Categories
+are the supplied defaults; custom category management, password reset, email
+verification, account deletion, bank connections, and recurring transactions are
+outside this version. The local authentication limiter is in memory and should be
+shared across instances before scaling. Homebrew's local trust authentication is
+for development; use least-privilege credentials and appropriate database access
+controls before hosting.
+
+No changes are committed or pushed automatically.
+
+## Verification results
+
+Verified locally with native PostgreSQL:
+
+- Frontend and backend production builds pass.
+- Source and test TypeScript checks pass; frontend ESLint and Prettier checks pass.
+- 17 isolated API/environment tests and 44 PostgreSQL/API integration tests pass.
+- Desktop and mobile Chrome workflows pass: registration, route protection,
+  transaction CRUD, budget progress, dashboard/chart values, settings, logout,
+  session persistence, and login errors. Captured layouts were visually reviewed.
+- Live website/API proxy and database health checks pass; logged-out session access
+  correctly returns 401. Both migrations are applied without resetting data.
+
+The frontend dependency installation still reports 10 moderate advisories through
+development tooling inherited from the initial ESLint setup. No forced package
+upgrades or downgrades were applied. Browser coverage currently uses Chromium;
+Safari and Firefox have not been verified.

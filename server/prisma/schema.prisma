@@ -1,0 +1,80 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  name         String        @db.VarChar(100)
+  email        String        @unique @db.VarChar(254)
+  passwordHash String
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  currency     String        @default("USD") @db.VarChar(3)
+  sessions     Session[]
+  transactions Transaction[]
+  categories   Category[]
+  budgets      Budget[]
+}
+
+model Category {
+  id           String          @id @default(uuid()) @db.Uuid
+  userId       String          @db.Uuid
+  name         String          @db.VarChar(100)
+  type         TransactionType
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  // Enables the composite FK enforcing category ownership AND matching type.
+  @@unique([id, userId, type])
+  @@unique([userId, name, type])
+}
+
+model Transaction {
+  id          String          @id @default(uuid()) @db.Uuid
+  userId      String          @db.Uuid
+  categoryId  String          @db.Uuid
+  amount      Decimal         @db.Decimal(19, 2)
+  type        TransactionType
+  description String?         @db.VarChar(500)
+  date        DateTime        @default(now()) @db.Date
+  createdAt   DateTime        @default(now()) @db.Timestamptz(3)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category        @relation(fields: [categoryId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId, date])
+  @@index([userId, type, date])
+  @@index([categoryId, userId, type])
+}
+
+model Budget {
+  id     String  @id @default(uuid()) @db.Uuid
+  userId String  @db.Uuid
+  amount Decimal @db.Decimal(19, 2)
+  month  Int     @db.SmallInt
+  year   Int     @db.SmallInt
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year, month])
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  csrfToken String   @db.VarChar(64)
+  expiresAt DateTime @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
