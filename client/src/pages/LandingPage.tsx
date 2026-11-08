@@ -1,20 +1,17 @@
 import { useEffect } from 'react'
-import {
-  ArrowRight,
-  ArrowLeftRight,
-  Target,
-  ChartNoAxesCombined,
-  Wallet,
-} from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Brand } from '../components/Brand'
+import { LandingPreview } from '../components/LandingPreview'
+import { useAuth } from '../hooks/useAuth'
+import './LandingPage.css'
 
 export function LandingPage() {
+  const { user } = useAuth()
   useEffect(() => {
     document.title = 'Pink Pocket · Personal finance'
   }, [])
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="landing-page min-h-screen bg-surface">
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
@@ -24,10 +21,12 @@ export function LandingPage() {
           aria-label="Account navigation"
           className="flex items-center gap-5 text-sm font-medium"
         >
-          <Link to="/login">Log in</Link>
-          <Link to="/register" className="button-primary">
+          <Link to={user ? '/dashboard' : '/login'}>Log in</Link>
+          <Link
+            to={user ? '/dashboard' : '/register'}
+            className="button-primary"
+          >
             Get started
-            <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </nav>
       </header>
@@ -37,81 +36,24 @@ export function LandingPage() {
         className="mx-auto max-w-6xl px-6 pb-16"
       >
         <section className="grid items-center gap-12 py-16 md:grid-cols-[1.2fr_1fr] md:py-16">
-          <div>
-            <h1 className="mt-5 max-w-xl text-5xl leading-[1.12] font-semibold tracking-tight sm:text-6xl">
-              Your money.
+          <div className="landing-entrance">
+            <h1 className="mt-5 max-w-xl text-5xl leading-[1.12] font-extrabold tracking-tight sm:text-6xl">
+              Track your
               <br />
-              <span className="text-[#a64b68]">At a glance.</span>
+              <span className="text-[#a64b68]">spending.</span>
             </h1>
             <p className="mt-6 max-w-lg text-lg leading-8 text-muted">
-              Track spending. Plan budgets. See the bigger picture.
+              Manage expenses and budgets in one place.
             </p>
-            <Link to="/dashboard" className="button-primary mt-8">
+            <Link
+              to={user ? '/dashboard' : '/login'}
+              className="button-primary mt-8"
+            >
               Open dashboard
-              <ArrowRight size={18} aria-hidden="true" />
             </Link>
           </div>
-          <div className="card relative p-8 sm:p-10">
-            <span className="inline-flex rounded-2xl bg-secondary p-4">
-              <Wallet size={34} strokeWidth={1.5} aria-hidden="true" />
-            </span>
-            <p className="mt-8 text-xs font-semibold uppercase tracking-widest text-muted">
-              Pink Pocket
-            </p>
-            <h2 className="mt-3 text-3xl leading-tight font-semibold">
-              Track. Plan. Review.
-            </h2>
-            <div className="mt-8 space-y-3">
-              {['Transactions', 'Budgets', 'Analytics'].map((label, i) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-3 rounded-xl bg-surface px-4 py-3 text-sm"
-                >
-                  <span
-                    className={`h-3 w-3 rounded-full ${['bg-primary', 'bg-lavender', 'bg-sage'][i]}`}
-                  />
-                  {label}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        <section aria-labelledby="features-heading">
-          <h2
-            id="features-heading"
-            className="text-2xl font-semibold tracking-tight"
-          >
-            Simple tools. Clear finances.
-          </h2>
-          <div className="mt-7 grid gap-5 md:grid-cols-3">
-            {[
-              {
-                icon: ArrowLeftRight,
-                title: 'Transactions',
-                text: 'Income and expenses, organized.',
-                color: 'bg-lavender',
-              },
-              {
-                icon: Target,
-                title: 'Budgets',
-                text: 'Monthly limits by category.',
-                color: 'bg-sage',
-              },
-              {
-                icon: ChartNoAxesCombined,
-                title: 'Analytics',
-                text: 'Spending trends and breakdowns.',
-                color: 'bg-sky',
-              },
-            ].map(({ icon: Icon, title, text, color }) => (
-              <article key={title} className="card p-7">
-                <span className={`inline-flex rounded-xl p-3 ${color}`}>
-                  <Icon size={22} aria-hidden="true" />
-                </span>
-                <h3 className="mt-5 font-semibold">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted">{text}</p>
-              </article>
-            ))}
+          <div className="landing-entrance landing-preview-entrance min-w-0">
+            <LandingPreview />
           </div>
         </section>
       </main>

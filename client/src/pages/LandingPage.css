@@ -1,0 +1,45 @@
+/* Landing-only motion; application pages retain their existing behavior. */
+@keyframes landing-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.landing-entrance {
+  animation: landing-enter 650ms ease-out both;
+}
+.landing-preview-entrance {
+  animation-delay: 100ms;
+}
+.landing-preview {
+  transition: box-shadow 200ms ease;
+}
+.landing-page .button-primary {
+  transition:
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+@media (hover: hover) {
+  .landing-preview:hover {
+    box-shadow: 0 8px 28px -14px #78556335;
+  }
+  .landing-page .button-primary:hover {
+    transform: translateY(-1px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-entrance {
+    animation: none;
+  }
+  .landing-preview,
+  .landing-page .button-primary {
+    transition: none;
+  }
+  .landing-page .button-primary:hover {
+    transform: none;
+  }
+}
