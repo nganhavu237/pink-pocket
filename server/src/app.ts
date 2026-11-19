@@ -11,6 +11,7 @@ type AppOptions = {
   auth?: AuthConfig
   frontendOrigins: string[]
   checkDatabase: () => Promise<void>
+  trustProxyHops?: number
 }
 
 export function createApp({
@@ -18,9 +19,19 @@ export function createApp({
   checkDatabase,
   db,
   auth,
+  trustProxyHops = 0,
 }: AppOptions) {
   const app = express()
   app.disable('x-powered-by')
+  app.set('trust proxy', trustProxyHops)
+  app.use((_req, res, next) => {
+    res.set({
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+    })
+    next()
+  })
   app.use(
     cors({
       origin(origin, callback) {

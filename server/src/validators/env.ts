@@ -19,6 +19,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, 'Must contain at least 32 characters'),
   HOST: z.string().min(1).default('127.0.0.1'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3001),
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(20).default(5),
   DATABASE_URL: z
     .string()
     .url()
@@ -40,6 +42,23 @@ export function parseEnv(source: NodeJS.ProcessEnv) {
     throw new Error(
       `Invalid environment configuration: ${result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ')}`,
     )
+  }
+  if (result.data.NODE_ENV === 'production') {
+    if (
+      result.data.FRONTEND_ORIGINS.some(
+        (origin) => !origin.startsWith('https://'),
+      )
+    )
+      throw new Error(
+        'Invalid environment configuration: production FRONTEND_ORIGINS must use HTTPS',
+      )
+    if (
+      new URL(result.data.DATABASE_URL).searchParams.get('sslmode') !==
+      'verify-full'
+    )
+      throw new Error(
+        'Invalid environment configuration: production DATABASE_URL must use sslmode=verify-full',
+      )
   }
   return result.data
 }

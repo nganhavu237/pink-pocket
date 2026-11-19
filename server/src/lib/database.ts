@@ -6,6 +6,6 @@ const adapter = new PrismaPg({
   connectionString: env.DATABASE_URL,
   connectionTimeoutMillis: 5000,
   query_timeout: 5000,
-  max: 10,
+  max: env.DATABASE_POOL_MAX,
 })
 export const prisma = new PrismaClient({ adapter })

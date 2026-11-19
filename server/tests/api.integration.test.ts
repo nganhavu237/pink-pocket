@@ -449,6 +449,10 @@ describe('session security controls', () => {
       .send({ email: bob.email, password })
     expect(response.status).toBe(200)
     expect(cookieHeader(response)).toContain('Secure')
+    expect(cookieHeader(response)).toContain('HttpOnly')
+    expect(cookieHeader(response)).toContain('SameSite=Lax')
+    expect(cookieHeader(response)).toContain('Path=/api')
+    expect(cookieHeader(response)).not.toContain('Domain=')
     const cookie = sessionCookie(response)
     const token = decodeURIComponent(cookie.slice(cookie.indexOf('=') + 1))
     const payload = jwt.decode(token) as jwt.JwtPayload

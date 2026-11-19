@@ -11,6 +11,7 @@ const app = createApp({
     secureCookies: env.NODE_ENV === 'production',
   },
   frontendOrigins: env.FRONTEND_ORIGINS,
+  trustProxyHops: env.TRUST_PROXY_HOPS,
   checkDatabase: () => checkDatabase(prisma),
 })
 
@@ -43,7 +44,7 @@ async function start() {
 
 start().catch(async () => {
   console.error(
-    'Database connection failed. Check DATABASE_URL and start PostgreSQL before starting the API.',
+    'Database connection failed. Check DATABASE_URL, TLS settings and database availability.',
   )
   await prisma.$disconnect()
   process.exitCode = 1

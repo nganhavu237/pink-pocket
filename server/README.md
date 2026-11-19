@@ -276,3 +276,14 @@ The GET image endpoint always resolves the current session's owner, never a quer
 parameter or filename. Responses use private/no-store, Vary: Cookie, nosniff and
 same-origin resource policy headers. No uploads directory is publicly served.
 See the root README for endpoint details and upload limits.
+
+
+## Hosted deployment
+
+See [the deployment guide](../docs/DEPLOYMENT.md). Render runs the compiled server
+with `npm run start:render`, applies checked-in migrations before listening, uses
+`HOST=0.0.0.0`, and takes its port from Render. Production configuration requires
+HTTPS frontend origins and a `DATABASE_URL` using `sslmode=verify-full`.
+Use the Supabase session pooler on port 5432 and its TLS root certificate.
+Row-level security blocks public Data API roles; the private Prisma connection
+uses the database owner or an explicitly privileged backend role.

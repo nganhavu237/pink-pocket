@@ -70,6 +70,7 @@ web_modules/
 .env.*
 !.env.example
 !.env.test.example
+!.env.production.example
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -155,3 +156,12 @@ server/src/generated/
 # Browser test artifacts
 playwright-report/
 test-results/
+
+# Local cloud CLI state and downloaded database certificates
+.vercel/
+*.crt
+*.pem
+*.cer
+
+# Private database backups
+*.dump

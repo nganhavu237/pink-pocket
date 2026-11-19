@@ -11,7 +11,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:e2e": "playwright test",
-    "typecheck": "tsc -b && tsc -p tsconfig.e2e.json"
+    "typecheck": "tsc -b && tsc -p tsconfig.e2e.json",
+    "test:e2e:production": "E2E_PRODUCTION_BUILD=1 playwright test"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.4",
@@ -39,6 +40,6 @@
     "vite": "^8.3.5"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": "24.x"
   }
 }

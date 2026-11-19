@@ -1,8 +1,9 @@
 # Toki
 
 A simple expense tracker and daily planner with secure accounts, transaction tracking,
-monthly budgets, and clear financial summaries. Built for local testing with native
-PostgreSQL on macOS; Docker is not required.
+monthly budgets, and clear financial summaries. Run locally with native PostgreSQL
+on macOS or use the prepared Vercel + Render + Supabase deployment setup.
+Docker is not required.
 
 ## Features
 
@@ -30,9 +31,16 @@ Backend routing, validation, business services, middleware, and database access
 are separated under `server/src/`. Frontend components, pages, hooks, contexts,
 services, and types are under `client/src/`.
 
+## Public website deployment
+
+See [the step-by-step deployment guide](docs/DEPLOYMENT.md) for free Vercel frontend,
+Render backend, and Supabase PostgreSQL setup. Configuration is prepared only;
+nothing has been deployed. API calls stay on the frontend origin for secure login
+on Mac and iPhone, and My Space photos persist privately in PostgreSQL.
+
 ## Local setup
 
-Requires Node.js 22.12+ (Node 24 LTS recommended), npm, and PostgreSQL 17.
+Requires Node.js 24.x, npm, and PostgreSQL 17.
 On the current Mac, PostgreSQL and the databases are already configured on port
 **5433**. A separate existing instance on port 5432 is left untouched.
 
@@ -68,13 +76,15 @@ Existing ignored `server/.env` and `.env.test` files were configured locally.
 For a fresh checkout, copy the corresponding example files and supply your own
 PostgreSQL password and random JWT secret. Do not overwrite existing configuration.
 
-| Variable           | Purpose                                                                       |
-| ------------------ | ----------------------------------------------------------------------------- |
-| `DATABASE_URL`     | PostgreSQL URL; development DB `pink_pocket`, test DB `pink_pocket_test`      |
-| `JWT_SECRET`       | Random signing secret, at least 32 characters (`openssl rand -hex 48`)        |
-| `FRONTEND_ORIGINS` | Comma-separated exact browser origins; local examples include ports 5173/5174 |
-| `HOST`, `PORT`     | API listener; defaults `127.0.0.1`, `3001`                                    |
-| `NODE_ENV`         | `development`, `test`, or `production`                                        |
+| Variable            | Purpose                                                                       |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `DATABASE_URL`      | PostgreSQL URL; development DB `pink_pocket`, test DB `pink_pocket_test`      |
+| `JWT_SECRET`        | Random signing secret, at least 32 characters (`openssl rand -hex 48`)        |
+| `FRONTEND_ORIGINS`  | Comma-separated exact browser origins; local examples include ports 5173/5174 |
+| `HOST`, `PORT`      | API listener; defaults `127.0.0.1`, `3001`                                    |
+| `TRUST_PROXY_HOPS`  | Trusted reverse-proxy hops; local `0`, Render `1`                             |
+| `DATABASE_POOL_MAX` | PostgreSQL pool size; default `5`                                             |
+| `NODE_ENV`          | `development`, `test`, or `production`                                        |
 
 The frontend calls `/api` through Vite's proxy; no frontend secrets or environment
 file are needed. Optional `API_PROXY_TARGET` changes the proxy target for isolated
@@ -101,6 +111,8 @@ npm run build
 npm run lint
 npm run format:check
 npm run test:e2e
+# Same workflows against the production frontend build:
+npm run test:e2e:production
 ```
 
 Playwright starts isolated API/frontend servers on ports 3002/5180 and uses
@@ -183,14 +195,16 @@ Verified locally with native PostgreSQL:
 
 - Frontend and backend production builds pass.
 - Source and test TypeScript checks pass; frontend ESLint and Prettier checks pass.
-- 17 isolated API/environment tests and 142 PostgreSQL/API integration tests pass.
+- 28 isolated API/environment tests and 143 PostgreSQL/API integration tests pass.
+- All 16 desktop/mobile workflows pass against the production frontend build.
 - Desktop and mobile Chrome workflows pass: registration, route protection,
   transaction CRUD, budget progress, dashboard/chart values, settings, logout,
   session persistence, and login errors. Additional desktop/mobile workflows cover
   repeat editing/stopping, starting-balance persistence, and month comparisons.
   Captured layouts were visually reviewed.
 - Live website/API proxy and database health checks pass; logged-out session access
-  correctly returns 401. All six migrations are applied without resetting data.
+  correctly returns 401. All eight migrations are applied to the dedicated test
+  database without resetting application data. The production database is not connected.
 
 The frontend dependency installation still reports 10 moderate advisories through
 development tooling inherited from the initial ESLint setup. No forced package

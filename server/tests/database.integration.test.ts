@@ -50,6 +50,43 @@ async function withRollback(
 }
 
 describe('PostgreSQL schema', () => {
+  it('protects every application table from public Data API roles without changing owner access', async () => {
+    const tables = [
+      'User',
+      'Session',
+      'Category',
+      'Transaction',
+      'Budget',
+      'CategoryBudget',
+      'RecurringRule',
+      'RecurringOccurrence',
+      'Task',
+      'MySpacePhoto',
+      '_prisma_migrations',
+    ]
+    const rows = await db.$queryRaw<
+      {
+        relname: string
+        relrowsecurity: boolean
+        relforcerowsecurity: boolean
+      }[]
+    >`
+      SELECT relname, relrowsecurity, relforcerowsecurity FROM pg_class
+      WHERE relnamespace = 'public'::regnamespace AND relkind = 'r'
+    `
+    for (const name of tables) {
+      expect(rows.find((row) => row.relname === name)).toMatchObject({
+        relrowsecurity: true,
+        relforcerowsecurity: false,
+      })
+    }
+    const policies = await db.$queryRaw<
+      { tablename: string }[]
+    >`SELECT tablename FROM pg_policies WHERE schemaname = 'public'`
+    expect(
+      policies.filter((policy) => tables.includes(policy.tablename)),
+    ).toEqual([])
+  })
   it('serves health using a real database query', async () => {
     const app = createApp({
       frontendOrigins: ['http://localhost:5173'],

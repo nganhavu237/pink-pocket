@@ -112,3 +112,72 @@ describe('environment validation', () => {
     throw new Error('Expected invalid environment to fail')
   })
 })
+
+describe('deployment configuration', () => {
+  const production = {
+    NODE_ENV: 'production',
+    DATABASE_URL:
+      'postgresql://postgres.example:unused@aws-0-region.pooler.supabase.com:5432/postgres?sslmode=verify-full',
+    JWT_SECRET: 'deployment-test-secret-at-least-32-characters',
+    FRONTEND_ORIGINS: 'https://toki-example.vercel.app',
+    HOST: '0.0.0.0',
+    TRUST_PROXY_HOPS: '1',
+    DATABASE_POOL_MAX: '5',
+  }
+  it('accepts HTTPS, verified database TLS and Render proxy settings', () => {
+    expect(parseEnv(production)).toMatchObject({
+      HOST: '0.0.0.0',
+      TRUST_PROXY_HOPS: 1,
+      DATABASE_POOL_MAX: 5,
+    })
+  })
+  it.each([
+    { FRONTEND_ORIGINS: 'http://toki-example.vercel.app' },
+    { DATABASE_URL: 'postgresql://postgres:unused@example.com:5432/postgres' },
+    {
+      DATABASE_URL:
+        'postgresql://postgres:unused@example.com:5432/postgres?sslmode=no-verify',
+    },
+    { TRUST_PROXY_HOPS: 'true' },
+    { TRUST_PROXY_HOPS: '-1' },
+    { TRUST_PROXY_HOPS: '6' },
+    { DATABASE_POOL_MAX: '0' },
+    { DATABASE_POOL_MAX: '21' },
+  ])('rejects unsafe production settings: %j', (values) => {
+    expect(() => parseEnv({ ...production, ...values })).toThrow(
+      'Invalid environment configuration',
+    )
+  })
+  it('trusts only the configured proxy hop instead of arbitrary forwarded addresses', () => {
+    const app = createApp({
+      frontendOrigins: [production.FRONTEND_ORIGINS],
+      checkDatabase: async () => {},
+      trustProxyHops: 1,
+    })
+    const trust = app.get('trust proxy fn') as (
+      address: string,
+      index: number,
+    ) => boolean
+    expect(trust('127.0.0.1', 0)).toBe(true)
+    expect(trust('203.0.113.1', 1)).toBe(false)
+    expect(setup().get('trust proxy')).toBe(0)
+  })
+  it('keeps HTTPS frontend origins intact behind the reverse proxy', async () => {
+    const app = createApp({
+      frontendOrigins: [production.FRONTEND_ORIGINS],
+      checkDatabase: async () => {},
+      trustProxyHops: 1,
+    })
+    const response = await request(app)
+      .get('/api/health')
+      .set('Origin', production.FRONTEND_ORIGINS)
+      .set('X-Forwarded-For', '203.0.113.1')
+      .set('X-Forwarded-Proto', 'https')
+    expect(response.status).toBe(200)
+    expect(response.headers['access-control-allow-origin']).toBe(
+      production.FRONTEND_ORIGINS,
+    )
+    expect(response.headers['x-content-type-options']).toBe('nosniff')
+    expect(response.headers['x-frame-options']).toBe('DENY')
+  })
+})
