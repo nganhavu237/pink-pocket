@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { ImagePlus, Pencil, Trash2 } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  ImagePlus,
+  Pencil,
+  Trash2,
+} from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
+import { OverviewTasks } from './OverviewTasks'
 import { api, send } from '../services/api'
 import { ErrorMessage } from './Feedback'
 import './MySpacePhoto.css'
@@ -8,6 +16,24 @@ type PhotoInfo = { version: string; width: number; height: number }
 const types = ['image/jpeg', 'image/png', 'image/webp']
 const maxBytes = 5 * 1024 * 1024
 export function MySpacePhoto() {
+  const { user } = useAuth()
+  const preferenceKey = `toki:overview-view:${user!.id}`
+  const [view, setView] = useState<'photo' | 'tasks'>(() => {
+    try {
+      return localStorage.getItem(preferenceKey) === 'tasks' ? 'tasks' : 'photo'
+    } catch {
+      return 'photo'
+    }
+  })
+  function switchView() {
+    const next = view === 'photo' ? 'tasks' : 'photo'
+    setView(next)
+    try {
+      localStorage.setItem(preferenceKey, next)
+    } catch {
+      // The carousel still works when browser storage is unavailable.
+    }
+  }
   const [photo, setPhoto] = useState<PhotoInfo | null>(null),
     [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false)
@@ -89,36 +115,60 @@ export function MySpacePhoto() {
     <section
       className="my-space-photo card flex min-h-0 flex-1 flex-col p-5"
       aria-labelledby="my-space-title"
-      aria-busy={busy || loading}
+      aria-busy={view === 'photo' && (busy || loading)}
     >
-      <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
+      <div className="mb-4 flex h-8 shrink-0 items-center justify-between gap-2">
         <h2 id="my-space-title" className="font-semibold">
-          My Space
+          {view === 'photo' ? 'My Space' : 'To-do'}
         </h2>
-        {photo && (
-          <div className="flex gap-1">
+        <div className="flex items-center gap-1">
+          {view === 'photo' && photo && (
+            <div className="flex gap-1">
+              <button
+                className="my-space-action rounded-lg p-2 text-muted hover:bg-secondary hover:text-ink"
+                type="button"
+                aria-label="Replace photo"
+                title="Replace photo"
+                disabled={busy || loading}
+                onClick={() => input.current?.click()}
+              >
+                <Pencil size={16} aria-hidden="true" />
+              </button>
+              <button
+                className="my-space-action rounded-lg p-2 text-muted hover:bg-secondary hover:text-ink"
+                type="button"
+                aria-label="Remove photo"
+                title="Remove photo"
+                disabled={busy || loading}
+                onClick={() => void remove()}
+              >
+                <Trash2 size={16} aria-hidden="true" />
+              </button>
+            </div>
+          )}
+          <div
+            className="flex items-center gap-1"
+            role="group"
+            aria-label="Card views"
+          >
             <button
-              className="my-space-action rounded-lg p-2 text-muted hover:bg-secondary hover:text-ink"
               type="button"
-              aria-label="Replace photo"
-              title="Replace photo"
-              disabled={busy || loading}
-              onClick={() => input.current?.click()}
+              className="my-space-action inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-secondary hover:text-ink"
+              aria-label="Previous view"
+              onClick={switchView}
             >
-              <Pencil size={16} aria-hidden="true" />
+              <ChevronLeft size={16} aria-hidden="true" />
             </button>
             <button
-              className="my-space-action rounded-lg p-2 text-muted hover:bg-secondary hover:text-ink"
               type="button"
-              aria-label="Remove photo"
-              title="Remove photo"
-              disabled={busy || loading}
-              onClick={() => void remove()}
+              className="my-space-action inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-secondary hover:text-ink"
+              aria-label="Next view"
+              onClick={switchView}
             >
-              <Trash2 size={16} aria-hidden="true" />
+              <ChevronRight size={16} aria-hidden="true" />
             </button>
           </div>
-        )}
+        </div>
       </div>
       <input
         ref={input}
@@ -129,7 +179,11 @@ export function MySpacePhoto() {
         onChange={(event) => void upload(event)}
         disabled={busy || loading}
       />
-      {loading ? (
+      {view === 'tasks' ? (
+        <div className="my-space-media my-space-panel">
+          <OverviewTasks />
+        </div>
+      ) : loading ? (
         <div className="my-space-media flex items-center justify-center rounded-xl bg-surface">
           <p role="status" className="text-xs text-muted">
             Loading…
@@ -172,7 +226,9 @@ export function MySpacePhoto() {
           {notice}
         </span>
       )}
-      {error && <ErrorMessage message={error} retry={retry} />}
+      {view === 'photo' && error && (
+        <ErrorMessage message={error} retry={retry} />
+      )}
     </section>
   )
 }

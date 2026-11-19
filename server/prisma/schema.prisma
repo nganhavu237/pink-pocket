@@ -15,13 +15,13 @@ enum TransactionType {
 }
 
 model User {
-  id              String          @id @default(uuid()) @db.Uuid
-  name            String          @db.VarChar(100)
-  email           String          @unique @db.VarChar(254)
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String           @db.VarChar(100)
+  email           String           @unique @db.VarChar(254)
   passwordHash    String
-  createdAt       DateTime        @default(now()) @db.Timestamptz(3)
-  currency        String          @default("USD") @db.VarChar(3)
-  startingBalance Decimal         @default(0) @db.Decimal(19, 2)
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  currency        String           @default("USD") @db.VarChar(3)
+  startingBalance Decimal          @default(0) @db.Decimal(19, 2)
   recurringRules  RecurringRule[]
   sessions        Session[]
   transactions    Transaction[]
@@ -29,18 +29,20 @@ model User {
   budgets         Budget[]
   tasks           Task[]
   mySpacePhoto    MySpacePhoto?
+  categoryBudgets CategoryBudget[]
 }
 
 model Category {
-  isDefault      Boolean         @default(false)
-  isArchived     Boolean         @default(false)
-  id             String          @id @default(uuid()) @db.Uuid
-  userId         String          @db.Uuid
-  name           String          @db.VarChar(100)
-  type           TransactionType
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions   Transaction[]
-  recurringRules RecurringRule[]
+  isDefault       Boolean          @default(false)
+  isArchived      Boolean          @default(false)
+  id              String           @id @default(uuid()) @db.Uuid
+  userId          String           @db.Uuid
+  name            String           @db.VarChar(100)
+  type            TransactionType
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+  recurringRules  RecurringRule[]
+  categoryBudgets CategoryBudget[]
 
   // Enables the composite FK enforcing category ownership AND matching type.
   @@unique([id, userId, type])
@@ -142,4 +144,19 @@ model MySpacePhoto {
   version   String   @default(uuid()) @db.Uuid
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CategoryBudget {
+  id         String          @id @default(uuid()) @db.Uuid
+  userId     String          @db.Uuid
+  categoryId String          @db.Uuid
+  type       TransactionType @default(EXPENSE)
+  amount     Decimal         @db.Decimal(19, 2)
+  month      Int             @db.SmallInt
+  year       Int             @db.SmallInt
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category   Category        @relation(fields: [categoryId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([userId, year, month, categoryId])
+  @@index([categoryId, userId, type])
 }

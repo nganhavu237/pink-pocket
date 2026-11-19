@@ -25,7 +25,9 @@
     opacity: 1;
   }
 }
-.my-space-photo .my-space-image {
+.my-space-photo .my-space-image,
+.my-space-photo .my-space-panel,
+.my-space-photo .my-space-task {
   animation: my-space-fade 240ms ease-out;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -33,7 +35,9 @@
   .my-space-photo .my-space-placeholder {
     transition: none;
   }
-  .my-space-photo .my-space-image {
+  .my-space-photo .my-space-image,
+  .my-space-photo .my-space-panel,
+  .my-space-photo .my-space-task {
     animation: none;
   }
 }

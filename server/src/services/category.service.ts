@@ -7,7 +7,7 @@ const inUse = () =>
   new HttpError(
     409,
     'CATEGORY_IN_USE',
-    'This category has transactions or monthly repeats. Rename it instead.',
+    'This category has transactions, monthly repeats or budgets. Rename it instead.',
   )
 async function lockOwner(tx: Prisma.TransactionClient, userId: string) {
   // Serialize category name checks without modifying existing names or records.
@@ -83,6 +83,9 @@ export function createCategories(db: PrismaClient) {
               where: { userId, categoryId: id },
             })) ||
             (await tx.recurringRule.count({
+              where: { userId, categoryId: id },
+            })) ||
+            (await tx.categoryBudget.count({
               where: { userId, categoryId: id },
             }))
           )

@@ -83,3 +83,11 @@ export type Task = {
   createdAt: string
   updatedAt: string
 }
+
+export type CategoryBudget = Budget & {
+  id: string
+  categoryId: string
+  category: { id: string; name: string }
+  amount: string
+  remaining: string
+}

@@ -6,6 +6,7 @@ import { api, send } from '../services/api'
 import { currentMonth, periodQuery } from '../utils/format'
 import type { Budget } from '../types'
 import { PageHeader, MonthPicker } from '../components/PageHeader'
+import { CategoryBudgets } from '../components/CategoryBudgets'
 import { BudgetProgress } from '../components/BudgetProgress'
 import { ErrorMessage, LoadingState } from '../components/Feedback'
 export function BudgetsPage() {
@@ -42,6 +43,7 @@ export function BudgetsPage() {
           )
         )}
       </section>
+      <CategoryBudgets key={month} month={month} currency={user!.currency} />
     </>
   )
 }

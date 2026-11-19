@@ -11,6 +11,7 @@ PostgreSQL on macOS; Docker is not required.
 - Month, category, and type filters; description search and pagination.
 - Monthly repeats with month-end handling, catch-up, and edit/stop controls in Transactions.
 - One overall budget per month, remaining amount, usage, and overspending alerts.
+- Optional monthly category budgets for default and custom expense categories, tracked independently of the overall budget.
 - Dashboard with all-time balance, monthly totals, previous-month expense comparison, recent transactions, and category spending.
 - Private My Space photo widget below Budget Progress, with upload/replace/remove controls.
 - Six-month income/expense charts and category breakdowns.
@@ -132,6 +133,11 @@ Successful responses use `{ "data": ... }`; errors use
 | GET         | `/api/analytics`                        | Six monthly income/expense totals                         |
 | PUT         | `/api/settings`                         | Update account/display currency                           |
 
+Category budgets use `GET /api/category-budgets?month=…&year=…`,
+`PUT /api/category-budgets` (`categoryId`, `amount`, `month`, `year`), and
+`DELETE /api/category-budgets/:id`. Removing a limit preserves transactions.
+Categories with saved limits must be renamed or have their limits removed before deletion.
+
 Monthly endpoints accept `month` and `year`. Transaction lists additionally accept
 `categoryId`, `type`, `search`, `page`, and `pageSize` (maximum 100). Supply both
 month/year or neither. Amounts are positive decimal **strings** with up to two
@@ -177,7 +183,7 @@ Verified locally with native PostgreSQL:
 
 - Frontend and backend production builds pass.
 - Source and test TypeScript checks pass; frontend ESLint and Prettier checks pass.
-- 17 isolated API/environment tests and 128 PostgreSQL/API integration tests pass.
+- 17 isolated API/environment tests and 142 PostgreSQL/API integration tests pass.
 - Desktop and mobile Chrome workflows pass: registration, route protection,
   transaction CRUD, budget progress, dashboard/chart values, settings, logout,
   session persistence, and login errors. Additional desktop/mobile workflows cover

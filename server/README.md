@@ -163,8 +163,9 @@ TIMESTAMPTZ. The local database timezone is explicitly UTC.
 The category composite FK `(categoryId, userId, type)` prevents cross-user category
 assignment and type mismatches at the database layer. Services also filter
 by the authenticated owner. Database checks enforce positive
-amounts and valid budget month/year; user/year/month is unique. Budgets have no
-category relation in this initial version.
+amounts and valid budget month/year; user/year/month is unique. The overall Budget remains separate from CategoryBudget, which has one
+expense-only limit per user/category/year/month and its own ownership FK.
+Category budget reads catch up recurring expenses and use a consistent database snapshot.
 
 CORS permits exact `FRONTEND_ORIGINS`, including credentials. Writes require an
 approved Origin and authenticated mutations require a session CSRF token. JWTs

@@ -787,3 +787,299 @@ test('Toki branding preserves the supplied logo on landing and authentication', 
   await expect(page).toHaveTitle('Log in · Toki')
   await expect(brand).toBeVisible()
 })
+
+test('Overview carousel shares Planner tasks and remembers each user’s view', async ({
+  page,
+}, testInfo) => {
+  const email = `carousel-${randomUUID()}@example.test`
+  accountEmails.push(email)
+  const origin = 'http://127.0.0.1:5180'
+  const registration = await page.request.post('/api/auth/register', {
+    headers: { Origin: origin },
+    data: {
+      name: 'Carousel Browser',
+      email,
+      password: 'Browser-test-password-123',
+    },
+  })
+  expect(registration.status()).toBe(201)
+  const { data: session } = await registration.json()
+  const tasks = []
+  for (const task of [
+    { name: 'Overdue task', dueDate: '2020-01-01' },
+    { name: 'Future task', dueDate: '2099-12-31' },
+    { name: 'No date task' },
+    { name: 'Already done', completed: true },
+    ...Array.from({ length: 7 }, (_, i) => ({ name: `Extra task ${i}` })),
+  ]) {
+    const response = await page.request.post('/api/tasks', {
+      headers: { Origin: origin, 'X-CSRF-Token': session.csrfToken },
+      data: task,
+    })
+    expect(response.status()).toBe(201)
+    tasks.push((await response.json()).data)
+  }
+  await page.goto('/dashboard')
+  const card = page.locator('.my-space-photo')
+  await expect(
+    card.getByRole('heading', { name: 'My Space', exact: true }),
+  ).toBeVisible()
+  await expect(
+    card.getByRole('button', { name: 'Upload photo', exact: true }),
+  ).toBeVisible()
+  const before = await card.boundingBox()
+  const previous = card.getByRole('button', {
+    name: 'Previous view',
+    exact: true,
+  })
+  const next = card.getByRole('button', { name: 'Next view', exact: true })
+  const left = await previous.boundingBox(),
+    right = await next.boundingBox()
+  expect(left!.height).toBe(32)
+  expect(left!.y).toBe(right!.y)
+  expect(right!.x - left!.x - left!.width).toBe(4)
+  await next.click()
+  await expect(
+    card.getByRole('heading', { name: 'To-do', exact: true }),
+  ).toBeVisible()
+  await expect(card.getByRole('checkbox')).toHaveCount(10)
+  for (const name of ['Overdue task', 'Future task', 'No date task']) {
+    await expect(
+      card.getByRole('checkbox', {
+        name: `Mark ${name} as completed`,
+        exact: true,
+      }),
+    ).toHaveCount(1)
+  }
+  await expect(card.getByText('Already done', { exact: true })).toHaveCount(0)
+  const after = await card.boundingBox()
+  expect(after!.height).toBe(before!.height)
+  expect(after!.width).toBe(before!.width)
+  const scroll = card.getByLabel('Incomplete tasks', { exact: true })
+  expect(await scroll.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(
+    true,
+  )
+  await page.screenshot({
+    path: testInfo.outputPath('overview-todo.png'),
+    fullPage: true,
+    animations: 'disabled',
+  })
+  await page.reload()
+  await expect(
+    card.getByRole('heading', { name: 'To-do', exact: true }),
+  ).toBeVisible()
+  await expect(card.getByRole('checkbox')).toHaveCount(10)
+  const checkbox = card.getByRole('checkbox', {
+    name: 'Mark Overdue task as completed',
+    exact: true,
+  })
+  await page.route(`**/api/tasks/${tasks[0].id}`, (route) =>
+    route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { message: 'Could not save task.' } }),
+    }),
+  )
+  await checkbox.check()
+  await expect(card.getByRole('alert')).toContainText('Could not save task.')
+  await expect(checkbox).not.toBeChecked()
+  await page.unroute(`**/api/tasks/${tasks[0].id}`)
+  await checkbox.check()
+  await expect(checkbox).toHaveCount(0)
+  await expect(card.getByRole('checkbox')).toHaveCount(9)
+  await card.getByRole('link', { name: 'View Planner', exact: true }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Planner', exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('checkbox', {
+      name: 'Mark Overdue task as incomplete',
+      exact: true,
+    }),
+  ).toBeChecked()
+  await page.getByRole('link', { name: 'Overview', exact: true }).click()
+  await expect(
+    card.getByRole('heading', { name: 'To-do', exact: true }),
+  ).toBeVisible()
+  await previous.click()
+  await expect(
+    card.getByRole('heading', { name: 'My Space', exact: true }),
+  ).toBeVisible()
+  await next.click()
+  await page.getByRole('button', { name: 'Log Out', exact: true }).click()
+  const secondEmail = `carousel-other-${randomUUID()}@example.test`
+  accountEmails.push(secondEmail)
+  const other = await page.request.post('/api/auth/register', {
+    headers: { Origin: origin },
+    data: {
+      name: 'Other Carousel User',
+      email: secondEmail,
+      password: 'Browser-test-password-123',
+    },
+  })
+  expect(other.status()).toBe(201)
+  await page.goto('/dashboard')
+  await expect(
+    card.getByRole('heading', { name: 'My Space', exact: true }),
+  ).toBeVisible()
+  await next.click()
+  await expect(
+    card.getByText('No incomplete tasks.', { exact: true }),
+  ).toBeVisible()
+  await expect(card.getByRole('checkbox')).toHaveCount(0)
+  await page.reload()
+  await expect(
+    card.getByRole('heading', { name: 'To-do', exact: true }),
+  ).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true)
+})
+
+test('category budgets track actual spending without changing the monthly budget', async ({
+  page,
+}, testInfo) => {
+  const email = `category-budgets-${randomUUID()}@example.test`
+  accountEmails.push(email)
+  const origin = 'http://127.0.0.1:5180'
+  const registration = await page.request.post('/api/auth/register', {
+    headers: { Origin: origin },
+    data: {
+      name: 'Category Budget Browser',
+      email,
+      password: 'Browser-test-password-123',
+    },
+  })
+  expect(registration.status()).toBe(201)
+  const { data: session } = await registration.json()
+  const headers = { Origin: origin, 'X-CSRF-Token': session.csrfToken }
+  const categories = (await (await page.request.get('/api/categories')).json())
+    .data
+  const food = categories.find(
+    (category: { name: string }) => category.name === 'Food',
+  )
+  const custom = await page.request.post('/api/categories', {
+    headers,
+    data: { name: 'Hobbies', type: 'EXPENSE' },
+  })
+  expect(custom.status()).toBe(201)
+  const customId = (await custom.json()).data.id
+  expect(
+    (
+      await page.request.put('/api/budgets', {
+        headers,
+        data: { month: 2, year: 2024, amount: '500' },
+      })
+    ).status(),
+  ).toBe(200)
+  for (const [categoryId, amount, date] of [
+    [food.id, '120.25', '2024-02-29'],
+    [customId, '20', '2024-02-01'],
+    [food.id, '99', '2024-03-01'],
+  ]) {
+    expect(
+      (
+        await page.request.post('/api/transactions', {
+          headers,
+          data: { type: 'EXPENSE', categoryId, amount, date },
+        })
+      ).status(),
+    ).toBe(201)
+  }
+  await page.goto('/budgets?month=2024-02')
+  const section = page.getByRole('region', {
+    name: 'Category Budgets',
+    exact: true,
+  })
+  await expect(
+    section.getByText('No category budgets this month.', { exact: true }),
+  ).toBeVisible()
+  await section
+    .getByRole('button', { name: 'Add Category Budget', exact: true })
+    .click()
+  let form = section.getByRole('form', {
+    name: 'Add category budget',
+    exact: true,
+  })
+  await form.getByLabel('Category', { exact: true }).selectOption(food.id)
+  await form.getByLabel('Budget amount', { exact: true }).fill('100')
+  await form.getByRole('button', { name: 'Save Budget', exact: true }).click()
+  const foodCard = section.getByRole('article', {
+    name: 'Food budget',
+    exact: true,
+  })
+  await expect(foodCard).toContainText('$120.25 spent')
+  await expect(foodCard).toContainText('of $100.00')
+  await expect(foodCard).toContainText('$20.25 over budget')
+  await expect(foodCard.getByRole('progressbar')).toHaveAttribute(
+    'aria-valuenow',
+    '100',
+  )
+  await section
+    .getByRole('button', { name: 'Add Category Budget', exact: true })
+    .click()
+  form = section.getByRole('form', { name: 'Add category budget', exact: true })
+  await expect(
+    form.getByRole('option', { name: 'Food', exact: true }),
+  ).toHaveCount(0)
+  await form.getByLabel('Category', { exact: true }).selectOption(customId)
+  await form.getByLabel('Budget amount', { exact: true }).fill('50')
+  await form.getByRole('button', { name: 'Save Budget', exact: true }).click()
+  const customCard = section.getByRole('article', {
+    name: 'Hobbies budget',
+    exact: true,
+  })
+  await expect(customCard).toContainText('$30.00 remaining')
+  await expect(customCard.getByRole('progressbar')).toHaveAttribute(
+    'aria-valuenow',
+    '40',
+  )
+  await page.reload()
+  await expect(foodCard).toContainText('$20.25 over budget')
+  await foodCard
+    .getByRole('button', { name: 'Edit Food budget', exact: true })
+    .click()
+  const edit = section.getByRole('form', {
+    name: 'Edit category budget',
+    exact: true,
+  })
+  await expect(edit.getByLabel('Category', { exact: true })).toBeDisabled()
+  await edit.getByLabel('Budget amount', { exact: true }).fill('200')
+  await edit.getByRole('button', { name: 'Save Budget', exact: true }).click()
+  await expect(foodCard).toContainText('$79.75 remaining')
+  const overall = page
+    .getByRole('heading', { name: 'Monthly Spending Budget', exact: true })
+    .locator('..')
+  await expect(
+    overall.getByLabel('Budget amount', { exact: true }),
+  ).toHaveValue('500.00')
+  await expect(overall).toContainText('$140.25 spent')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true)
+  await page.screenshot({
+    path: testInfo.outputPath('category-budgets.png'),
+    fullPage: true,
+  })
+  await page.getByLabel('Month', { exact: true }).fill('2024-03')
+  await expect(section.getByRole('article')).toHaveCount(0)
+  await expect(
+    section.getByText('No category budgets this month.', { exact: true }),
+  ).toBeVisible()
+  await page.getByLabel('Month', { exact: true }).fill('2024-02')
+  await expect(section.getByRole('article')).toHaveCount(2)
+  await foodCard
+    .getByRole('button', { name: 'Remove Food budget', exact: true })
+    .click()
+  await expect(foodCard).toHaveCount(0)
+  await page.reload()
+  await expect(section.getByRole('article')).toHaveCount(1)
+  await expect(
+    overall.getByLabel('Budget amount', { exact: true }),
+  ).toHaveValue('500.00')
+  await expect(overall).toContainText('$140.25 spent')
+})

@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 
 export function Brand({ sidebar = false }: { sidebar?: boolean }) {
+  const { user } = useAuth()
   return (
     <Link
-      to="/"
+      to={user ? '/dashboard' : '/'}
       className={
         sidebar
           ? 'mx-auto block w-32 max-w-full shrink-0'

@@ -28,6 +28,7 @@ import {
 } from '../services/recurring.service.js'
 import { categoryRoutes } from './category.routes.js'
 import { photoRoutes } from './photo.routes.js'
+import { categoryBudgetRoutes } from './category-budget.routes.js'
 import { taskRoutes } from './task.routes.js'
 import { HttpError } from '../middleware/error-handler.js'
 
@@ -106,6 +107,7 @@ export function apiRoutes(
         '/transactions',
         '/recurring',
         '/budgets',
+        '/category-budgets',
         '/dashboard/summary',
         '/analytics',
       ].includes(req.path)
@@ -207,13 +209,16 @@ export function apiRoutes(
     await finance.remove(owner(res), id.parse(req.params.id))
     res.status(204).end()
   })
+  router.use('/category-budgets', categoryBudgetRoutes(db))
   router.get('/budgets', async (req, res) => {
     const { month, year } = period.parse(req.query)
     res.json({ data: await finance.budget(owner(res), month, year) })
   })
   router.put('/budgets', async (req, res) => {
     const { month, year, amount } = budgetInput.parse(req.body)
-    res.json({ data: await finance.setBudget(owner(res), month, year, amount) })
+    res.json({
+      data: await finance.setBudget(owner(res), month, year, amount),
+    })
   })
   router.get('/dashboard/summary', async (req, res) => {
     const { month, year } = period.parse(req.query)
