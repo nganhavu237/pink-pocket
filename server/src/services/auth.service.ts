@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import type { CookieOptions, RequestHandler, Response } from 'express'
-import type { PrismaClient } from '../generated/prisma/client.js'
+import type { Prisma, PrismaClient } from '../generated/prisma/client.js'
 import { HttpError } from '../middleware/error-handler.js'
 
 export type AuthConfig = { jwtSecret: string; secureCookies: boolean }
@@ -11,8 +11,14 @@ export const userSelect = {
   name: true,
   email: true,
   currency: true,
+  startingBalance: true,
   createdAt: true,
 } as const
+export function serializeUser(
+  user: Prisma.UserGetPayload<{ select: typeof userSelect }>,
+) {
+  return { ...user, startingBalance: user.startingBalance.toFixed(2) }
+}
 const days = 7 * 24 * 60 * 60
 const cookieName = 'pink_pocket_session'
 const defaults = [
@@ -24,7 +30,6 @@ const defaults = [
   ['Health', 'EXPENSE'],
   ['Other', 'EXPENSE'],
   ['Salary', 'INCOME'],
-  ['Other Income', 'INCOME'],
 ] as const
 export function cookieOptions(config: AuthConfig): CookieOptions {
   return {
@@ -117,7 +122,11 @@ export function createAuth(db: PrismaClient, config: AuthConfig) {
         email: input.email,
         passwordHash,
         categories: {
-          create: defaults.map(([name, type]) => ({ name, type })),
+          create: defaults.map(([name, type]) => ({
+            name,
+            type,
+            isDefault: true,
+          })),
         },
       },
       select: userSelect,

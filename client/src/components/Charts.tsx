@@ -17,7 +17,7 @@ import { money } from '../utils/format'
 const colors = [
   '#F4A7B9',
   '#E6D9F2',
-  '#DCEBDD',
+  '#C8DDC3',
   '#DCEAF7',
   '#E5C4A9',
   '#C1BDDB',
@@ -51,6 +51,8 @@ export function ExpenseChart({
               ))}
             </Pie>
             <Tooltip
+              itemStyle={{ color: '#000000' }}
+              labelStyle={{ color: '#000000' }}
               formatter={(_value, _name, item) =>
                 money((item.payload as Breakdown).amount, currency)
               }
@@ -104,6 +106,7 @@ export function TrendChart({
             />
             <YAxis width={50} tick={{ fontSize: 11 }} />
             <Tooltip
+              itemStyle={{ color: '#000000' }}
               formatter={(value) =>
                 new Intl.NumberFormat(undefined, {
                   style: 'currency',
@@ -111,12 +114,16 @@ export function TrendChart({
                 }).format(Number(value))
               }
             />
-            <Legend />
+            <Legend
+              formatter={(value) => (
+                <span style={{ color: '#000000' }}>{value}</span>
+              )}
+            />
             <Bar
               isAnimationActive={false}
               dataKey="income"
               name="Income"
-              fill="#DCEBDD"
+              fill="#C8DDC3"
               radius={[4, 4, 0, 0]}
             />
             <Bar

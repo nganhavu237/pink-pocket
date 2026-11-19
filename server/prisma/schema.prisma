@@ -15,25 +15,31 @@ enum TransactionType {
 }
 
 model User {
-  id           String        @id @default(uuid()) @db.Uuid
-  name         String        @db.VarChar(100)
-  email        String        @unique @db.VarChar(254)
-  passwordHash String
-  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
-  currency     String        @default("USD") @db.VarChar(3)
-  sessions     Session[]
-  transactions Transaction[]
-  categories   Category[]
-  budgets      Budget[]
+  id              String          @id @default(uuid()) @db.Uuid
+  name            String          @db.VarChar(100)
+  email           String          @unique @db.VarChar(254)
+  passwordHash    String
+  createdAt       DateTime        @default(now()) @db.Timestamptz(3)
+  currency        String          @default("USD") @db.VarChar(3)
+  startingBalance Decimal         @default(0) @db.Decimal(19, 2)
+  recurringRules  RecurringRule[]
+  sessions        Session[]
+  transactions    Transaction[]
+  categories      Category[]
+  budgets         Budget[]
+  tasks           Task[]
 }
 
 model Category {
-  id           String          @id @default(uuid()) @db.Uuid
-  userId       String          @db.Uuid
-  name         String          @db.VarChar(100)
-  type         TransactionType
-  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  isDefault      Boolean         @default(false)
+  isArchived     Boolean         @default(false)
+  id             String          @id @default(uuid()) @db.Uuid
+  userId         String          @db.Uuid
+  name           String          @db.VarChar(100)
+  type           TransactionType
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions   Transaction[]
+  recurringRules RecurringRule[]
 
   // Enables the composite FK enforcing category ownership AND matching type.
   @@unique([id, userId, type])
@@ -52,6 +58,11 @@ model Transaction {
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   category    Category        @relation(fields: [categoryId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
 
+  recurringId     String?        @db.Uuid
+  occurrenceMonth DateTime?      @db.Date
+  recurring       RecurringRule? @relation(fields: [recurringId, userId], references: [id, userId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([recurringId, occurrenceMonth])
   @@index([userId, date])
   @@index([userId, type, date])
   @@index([categoryId, userId, type])
@@ -77,4 +88,47 @@ model Session {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model RecurringRule {
+  id           String                @id @default(uuid()) @db.Uuid
+  userId       String                @db.Uuid
+  categoryId   String                @db.Uuid
+  amount       Decimal               @db.Decimal(19, 2)
+  type         TransactionType
+  description  String?               @db.VarChar(500)
+  day          Int                   @db.SmallInt
+  nextDate     DateTime              @db.Date
+  active       Boolean               @default(true)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     Category              @relation(fields: [categoryId, userId, type], references: [id, userId, type], onDelete: NoAction, onUpdate: NoAction)
+  transactions Transaction[]
+  occurrences  RecurringOccurrence[]
+
+  @@unique([id, userId])
+  @@index([active, nextDate])
+  @@index([userId])
+  @@index([categoryId, userId, type])
+}
+
+model RecurringOccurrence {
+  recurringId String        @db.Uuid
+  month       DateTime      @db.Date
+  recurring   RecurringRule @relation(fields: [recurringId], references: [id], onDelete: Cascade)
+
+  @@id([recurringId, month])
+}
+
+model Task {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  name      String    @db.VarChar(200)
+  dueDate   DateTime? @db.Date
+  dueTime   String?   @db.VarChar(5)
+  completed Boolean   @default(false)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completed, createdAt])
 }

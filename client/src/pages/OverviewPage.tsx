@@ -1,6 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowDownLeft, ArrowUpRight, Wallet, Plus } from 'lucide-react'
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Wallet,
+  Plus,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useResource } from '../hooks/useResource'
 import { currentMonth, money, periodQuery } from '../utils/format'
@@ -71,6 +78,9 @@ export function OverviewPage() {
                   <p className="mt-4 break-words text-2xl font-semibold">
                     {money(value, currency)}
                   </p>
+                  {label === 'Monthly Expenses' && (
+                    <ExpenseComparison percentage={data.expenseChangePercent} />
+                  )}
                 </article>
               ))}
             </section>
@@ -108,5 +118,25 @@ export function OverviewPage() {
         )
       )}
     </>
+  )
+}
+
+function ExpenseComparison({ percentage }: { percentage: number | null }) {
+  if (percentage === null)
+    return <p className="mt-2 text-xs text-muted">No previous data</p>
+  if (percentage === 0)
+    return <p className="mt-2 text-xs text-muted">Same as last month</p>
+  const lower = percentage < 0
+  const Icon = lower ? TrendingDown : TrendingUp
+  return (
+    <p
+      className={`mt-2 flex items-center gap-1 text-xs ${lower ? 'text-[#4c6a55]' : 'text-[#98506a]'}`}
+    >
+      <Icon size={14} aria-hidden="true" />
+      {new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(
+        Math.abs(percentage),
+      )}
+      % {lower ? 'less' : 'more'} than last month
+    </p>
   )
 }

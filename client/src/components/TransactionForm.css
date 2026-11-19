@@ -1,0 +1,32 @@
+.transaction-form .transaction-form-field {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+.transaction-form .transaction-form-label {
+  padding-left: 13px;
+}
+.transaction-form .transaction-form-field .field {
+  min-width: 0;
+  height: 44px;
+  margin: 0;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+.transaction-form .transaction-form-field select.field {
+  appearance: none;
+  padding-right: 40px;
+  text-overflow: ellipsis;
+}
+.transaction-form input[type='date']::-webkit-datetime-edit {
+  padding: 0;
+}
+.transaction-form input[type='date']::-webkit-calendar-picker-indicator {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}

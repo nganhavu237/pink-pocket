@@ -1,0 +1,22 @@
+.settings-form .settings-field {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+.settings-form .settings-label {
+  padding-left: 13px;
+}
+.settings-form .settings-field .field {
+  min-width: 0;
+  height: 44px;
+  margin: 0;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+.settings-form .settings-field select.field {
+  appearance: none;
+  padding-right: 40px;
+  text-overflow: ellipsis;
+}

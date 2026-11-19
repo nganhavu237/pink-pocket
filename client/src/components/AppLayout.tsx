@@ -2,6 +2,7 @@ import {
   ArrowLeftRight,
   ChartNoAxesCombined,
   LayoutDashboard,
+  ListChecks,
   Settings,
   Target,
 } from 'lucide-react'
@@ -16,6 +17,7 @@ const navigation = [
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { to: '/budgets', label: 'Budgets', icon: Target },
   { to: '/analytics', label: 'Analytics', icon: ChartNoAxesCombined },
+  { to: '/planner', label: 'Planner', icon: ListChecks },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 

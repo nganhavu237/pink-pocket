@@ -30,6 +30,11 @@ const AnalyticsPage = lazy(() =>
     default: module.AnalyticsPage,
   })),
 )
+const PlannerPage = lazy(() =>
+  import('./pages/PlannerPage').then((module) => ({
+    default: module.PlannerPage,
+  })),
+)
 const SettingsPage = lazy(() =>
   import('./pages/SettingsPage').then((module) => ({
     default: module.SettingsPage,
@@ -72,6 +77,7 @@ export default function App() {
                 <Route path="/transactions" element={<TransactionsPage />} />
                 <Route path="/budgets" element={<BudgetsPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/planner" element={<PlannerPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Route>

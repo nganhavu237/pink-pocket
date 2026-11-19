@@ -1,6 +1,7 @@
 import { createApp } from './app.js'
 import { prisma } from './lib/database.js'
 import { env } from './lib/env.js'
+import { startRecurringWorker } from './services/recurring.service.js'
 import { checkDatabase } from './services/health.service.js'
 
 const app = createApp({
@@ -15,6 +16,7 @@ const app = createApp({
 
 async function start() {
   await checkDatabase(prisma)
+  const stopWorker = startRecurringWorker(prisma)
   const server = app.listen(env.PORT, env.HOST, () => {
     console.info(`Pink Pocket API listening on http://${env.HOST}:${env.PORT}`)
   })
@@ -30,7 +32,9 @@ async function start() {
     const timeout = setTimeout(() => process.exit(1), 10000)
     timeout.unref()
     server.close(() => {
-      void prisma.$disconnect().finally(() => process.exit(0))
+      void stopWorker()
+        .then(() => prisma.$disconnect())
+        .finally(() => process.exit(0))
     })
   }
   process.once('SIGINT', shutdown)

@@ -18,7 +18,8 @@
     "db:status": "prisma migrate status",
     "db:check": "tsx src/lib/check-database.ts",
     "test": "vitest run",
-    "test:db": "node --env-file=.env.test node_modules/vitest/vitest.mjs run --config vitest.database.config.ts"
+    "test:db": "node --env-file=.env.test node_modules/vitest/vitest.mjs run --config vitest.database.config.ts",
+    "recurring:process": "tsx src/lib/process-recurring.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

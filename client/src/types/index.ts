@@ -1,7 +1,19 @@
 export type Kind = 'INCOME' | 'EXPENSE'
-export type User = { id: string; name: string; email: string; currency: string }
+export type User = {
+  id: string
+  name: string
+  email: string
+  currency: string
+  startingBalance: string
+}
 export type AuthResponse = { user: User; csrfToken: string }
-export type Category = { id: string; name: string; type: Kind }
+export type Category = {
+  id: string
+  name: string
+  type: Kind
+  isDefault: boolean
+  isArchived: boolean
+}
 export type Transaction = {
   id: string
   amount: string
@@ -10,8 +22,21 @@ export type Transaction = {
   description: string | null
   categoryId: string
   category: Category
+  recurring: { id: string; active: boolean; day: number } | null
+}
+export type RecurringRule = {
+  id: string
+  categoryId: string
+  category: Category
+  amount: string
+  type: Kind
+  description: string | null
+  day: number
+  nextDate: string
+  active: boolean
 }
 export type TransactionInput = {
+  recurring: boolean
   amount: string
   type: Kind
   date: string
@@ -41,8 +66,20 @@ export type Summary = {
   balance: string
   income: string
   expenses: string
+  previousExpenses: string
+  expenseChangePercent: number | null
   budget: Budget
   recent: Transaction[]
   breakdown: Breakdown[]
 }
 export type Trend = { month: string; income: string; expenses: string }
+
+export type Task = {
+  id: string
+  name: string
+  dueDate: string | null
+  dueTime: string | null
+  completed: boolean
+  createdAt: string
+  updatedAt: string
+}

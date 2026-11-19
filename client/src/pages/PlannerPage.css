@@ -1,0 +1,26 @@
+.planner-task {
+  transition: background-color 180ms ease;
+}
+.planner-task-name {
+  transition: color 180ms ease;
+}
+@keyframes planner-check {
+  from {
+    transform: scale(0.85);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+.planner-checkbox:checked {
+  animation: planner-check 160ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .planner-task,
+  .planner-task-name {
+    transition: none;
+  }
+  .planner-checkbox:checked {
+    animation: none;
+  }
+}

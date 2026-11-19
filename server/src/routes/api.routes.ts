@@ -5,6 +5,7 @@ import type { PrismaClient } from '../generated/prisma/client.js'
 import {
   createAuth,
   userSelect,
+  serializeUser,
   type AuthConfig,
 } from '../services/auth.service.js'
 import { createFinance } from '../services/finance.service.js'
@@ -17,7 +18,16 @@ import {
   profileInput,
   registerInput,
   transactionInput,
+  recurringInput,
 } from '../validators/finance.js'
+import {
+  lockRule,
+  processRecurring,
+  serializeRule,
+  utcToday,
+} from '../services/recurring.service.js'
+import { categoryRoutes } from './category.routes.js'
+import { taskRoutes } from './task.routes.js'
 import { HttpError } from '../middleware/error-handler.js'
 
 export function apiRoutes(
@@ -51,34 +61,33 @@ export function apiRoutes(
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: (_req, res) =>
-      res
-        .status(429)
-        .json({
-          error: {
-            code: 'TOO_MANY_ATTEMPTS',
-            message: 'Too many attempts. Try again in 15 minutes.',
-          },
-        }),
+      res.status(429).json({
+        error: {
+          code: 'TOO_MANY_ATTEMPTS',
+          message: 'Too many attempts. Try again in 15 minutes.',
+        },
+      }),
   })
   router.post('/auth/register', limiter, async (req, res) => {
     const input = registerInput.parse(req.body)
     const user = await auth.register(input)
     const csrfToken = await auth.issueSession(user.id, res)
-    res.status(201).json({ data: { user, csrfToken } })
+    res.status(201).json({ data: { user: serializeUser(user), csrfToken } })
   })
   router.post('/auth/login', limiter, async (req, res) => {
     const input = loginInput.parse(req.body)
     const user = await auth.login(input.email, input.password)
     const csrfToken = await auth.issueSession(user.id, res)
-    res.json({ data: { user, csrfToken } })
+    res.json({ data: { user: serializeUser(user), csrfToken } })
   })
   router.use(auth.requireAuth)
+  router.use('/tasks', taskRoutes(db))
   const owner = (res: Parameters<RequestHandler>[1]): string =>
     res.locals.session.userId
   router.get('/auth/me', (_req, res) =>
     res.json({
       data: {
-        user: res.locals.session.user,
+        user: serializeUser(res.locals.session.user),
         csrfToken: res.locals.session.csrfToken,
       },
     }),
@@ -87,25 +96,101 @@ export function apiRoutes(
     await auth.logout(res.locals.session.id, res)
     res.status(204).end()
   })
-  router.get('/categories', async (_req, res) =>
+  router.use('/categories', categoryRoutes(db))
+  router.use(async (req, res, next) => {
+    if (
+      req.method === 'GET' &&
+      [
+        '/transactions',
+        '/recurring',
+        '/budgets',
+        '/dashboard/summary',
+        '/analytics',
+      ].includes(req.path)
+    )
+      await processRecurring(db, { userId: owner(res) })
+    next()
+  })
+  router.get('/recurring', async (_req, res) =>
     res.json({
-      data: await db.category.findMany({
-        where: { userId: owner(res) },
-        orderBy: [{ type: 'asc' }, { name: 'asc' }],
-      }),
+      data: (
+        await db.recurringRule.findMany({
+          where: { userId: owner(res), active: true },
+          include: { category: true },
+          orderBy: { nextDate: 'asc' },
+        })
+      ).map(serializeRule),
     }),
   )
+  router.put('/recurring/:id', async (req, res) => {
+    const ruleId = id.parse(req.params.id)
+    const input = recurringInput.parse(req.body)
+    const date = new Date(input.date + 'T00:00:00Z')
+    if (input.recurring && date < utcToday())
+      throw new HttpError(
+        400,
+        'INVALID_DATE',
+        'Choose today or a future date for the next repeat',
+      )
+    await processRecurring(db, { userId: owner(res), ruleId })
+    const rule = await db.$transaction(async (tx) => {
+      const existing = await lockRule(tx, ruleId, owner(res))
+      if (
+        !(await tx.category.findFirst({
+          where: {
+            id: input.categoryId,
+            userId: owner(res),
+            type: input.type,
+            ...(input.categoryId === existing.categoryId
+              ? {}
+              : { isArchived: false }),
+          },
+        }))
+      )
+        throw new HttpError(
+          400,
+          'INVALID_CATEGORY',
+          'Choose a category matching this transaction type',
+        )
+      return tx.recurringRule.update({
+        where: { id: ruleId, userId: owner(res) },
+        data: {
+          amount: input.amount,
+          type: input.type,
+          categoryId: input.categoryId,
+          description: input.description || null,
+          day:
+            date.getTime() === existing.nextDate.getTime()
+              ? existing.day
+              : date.getUTCDate(),
+          nextDate: date,
+          active: input.recurring,
+        },
+        include: { category: true },
+      })
+    })
+    res.json({ data: serializeRule(rule) })
+  })
+  router.delete('/recurring/:id', async (req, res) => {
+    const ruleId = id.parse(req.params.id)
+    await db.$transaction(async (tx) => {
+      await lockRule(tx, ruleId, owner(res))
+      await tx.recurringRule.update({
+        where: { id: ruleId, userId: owner(res) },
+        data: { active: false },
+      })
+    })
+    res.status(204).end()
+  })
   router.get('/transactions', async (req, res) =>
     res.json({
       data: await finance.list(owner(res), listQuery.parse(req.query)),
     }),
   )
   router.post('/transactions', async (req, res) =>
-    res
-      .status(201)
-      .json({
-        data: await finance.save(owner(res), transactionInput.parse(req.body)),
-      }),
+    res.status(201).json({
+      data: await finance.save(owner(res), transactionInput.parse(req.body)),
+    }),
   )
   router.put('/transactions/:id', async (req, res) =>
     res.json({
@@ -138,11 +223,13 @@ export function apiRoutes(
   })
   router.put('/settings', async (req, res) =>
     res.json({
-      data: await db.user.update({
-        where: { id: owner(res) },
-        data: profileInput.parse(req.body),
-        select: userSelect,
-      }),
+      data: serializeUser(
+        await db.user.update({
+          where: { id: owner(res) },
+          data: profileInput.parse(req.body),
+          select: userSelect,
+        }),
+      ),
     }),
   )
   return router

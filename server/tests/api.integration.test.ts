@@ -105,7 +105,7 @@ describe('authentication and isolation', () => {
     const stored = await db.user.findUniqueOrThrow({ where: { id: alice.id } })
     expect(stored.passwordHash).not.toBe(password)
     expect(await bcrypt.compare(password, stored.passwordHash)).toBe(true)
-    expect((await get('/categories')).body.data).toHaveLength(9)
+    expect((await get('/categories')).body.data).toHaveLength(8)
     const cookie = cookieHeader(alice.response)
     expect(cookie).toContain('HttpOnly')
     expect(cookie).toContain('SameSite=Lax')

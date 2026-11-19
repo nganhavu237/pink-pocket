@@ -32,6 +32,7 @@ export function TransactionTable({
             </p>
             <p className="mt-1 text-xs text-muted">
               {item.category.name} · {displayDate(item.date)}
+              {item.recurring?.active ? ' · Repeats monthly' : ''}
             </p>
           </div>
           <p className="break-all text-sm font-semibold">

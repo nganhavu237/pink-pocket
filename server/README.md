@@ -146,7 +146,7 @@ category ownership/type, positive amounts, and month/year constraints.
 - `src/validators/env.ts`: required PostgreSQL URL, exact frontend origins, port.
 - `src/middleware/error-handler.ts`: consistent JSON errors with no stack traces
   or connection strings in responses.
-- `prisma/schema.prisma`: User, Session, Category, Transaction, Budget, transaction enum.
+- `prisma/schema.prisma`: User, Session, Category, Transaction, Budget, RecurringRule/Occurrence, Task, transaction enum.
 - `prisma/migrations/`: initial schema, indexes, FKs, and SQL CHECK constraints.
 - `prisma.config.ts`: Prisma 7 CLI datasource and migration configuration.
 
@@ -202,4 +202,57 @@ Official references: [Homebrew PostgreSQL 17](https://formulae.brew.sh/formula/p
 
 Build/type checks, isolated API tests, real PostgreSQL integration tests, and
 browser workflow tests are documented in the project README and latest task
-report. Both migrations are additive; the existing data is retained.
+report. All migrations are additive; the existing data is retained.
+
+## Monthly worker and starting balance
+
+`src/services/recurring.service.ts` processes due schedules at API startup and once
+per minute. The browser is not a scheduler. `npm run recurring:process` provides a
+one-shot CLI suitable for an external scheduler. Missed dates catch up from the
+persisted nextDate after downtime. The backend or external scheduler must be
+running; no software can generate rows while the Mac is powered off.
+
+Occurrences are committed atomically with nextDate advancement. PostgreSQL row
+locks coordinate workers and schedule edits/stops; rule/month ledger keys and
+transaction uniqueness prevent duplicates, including deleted-entry retries.
+Generated records always use the rule's owner, category, type, and Decimal amount.
+Month-end clipping retains the original day. See the root README for edit scope,
+backlog limits, and re-enabling behavior.
+
+Settings accept optional `startingBalance` as a signed two-decimal string; omitting
+it preserves the value. Users created before this migration default to zero.
+Dashboard responses now include `previousExpenses` and `expenseChangePercent`
+(null when previous expenses are zero). Income analytics exclude starting balance.
+
+## Planner API
+
+`GET /api/tasks` returns only the current user's checklist with incomplete tasks
+first. `POST /api/tasks` accepts `{name, dueDate?, dueTime?, completed?}` and returns
+201. `PUT /api/tasks/:id` accepts one or more of those fields, including a single
+`completed` boolean for check-off actions. `DELETE /api/tasks/:id` returns 204.
+Missing or foreign-owned records return 404. Authentication, approved Origin, and
+CSRF checks are shared with other private endpoints.
+
+Names are trimmed, required, and limited to 200 characters. Dates are
+`YYYY-MM-DD`, times are `HH:mm` (24-hour wall-clock values), and either may be
+omitted or null. Omit a field on update to preserve it; send null to clear it.
+The database enforces task ownership relations, nonempty names, and valid times.
+
+## Custom categories and currency preferences
+
+Category records have `isDefault` and `isArchived` flags. Existing defaults are
+marked by the additive migration; Other Income is archived without removing
+history. GET categories includes archived metadata for historical filters/editing.
+New transaction assignments cannot use archived categories, but existing entries
+and recurring schedules may retain their legacy references.
+
+POST categories accepts `{name, type}`; PUT categories/:id accepts `{name}` only.
+Custom category creation and renaming check names case-insensitively while holding
+the owner's row lock. Default/archived categories are read-only. Deletion checks
+both transaction and recurring-rule references, returns CATEGORY_IN_USE (409), and
+retains database FK protection against concurrent inserts. All routes use existing
+session/Origin/CSRF checks and owner-scoped queries.
+
+Settings currency accepts a normalized ISO 4217 three-letter code supported by the
+runtime Intl currency list, including VND. Invalid/unknown codes return 400. No
+amounts are converted when currency changes. See the [Intl currency specification](https://402.ecma-international.org/13.0/#sec-availablecanonicalcurrencies).

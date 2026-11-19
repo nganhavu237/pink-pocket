@@ -36,6 +36,7 @@ export const transactionInput = z
     type: kind,
     categoryId: id,
     date: dateOnly.optional(),
+    recurring: z.boolean().optional(),
     description: z.string().trim().max(500).optional(),
   })
   .strict()
@@ -68,11 +69,32 @@ export const listQuery = z
     'Provide both month and year',
   )
 export const budgetInput = period.extend({ amount: money }).strict()
+export const startingBalanceInput = z
+  .string()
+  .regex(
+    /^-?\d{1,17}(\.\d{1,2})?$/,
+    'Use an amount with up to 2 decimal places',
+  )
+export const recurringInput = transactionInput.extend({
+  date: dateOnly,
+  recurring: z.boolean(),
+})
+const currencyCodes = new Set(Intl.supportedValuesOf('currency'))
+export const currencyCode = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z]{3}$/, 'Use a 3-letter currency code')
+  .refine(
+    (code) => currencyCodes.has(code),
+    'Enter a recognized currency code, such as USD, VND or JPY',
+  )
 export const profileInput = z
   .object({
     name: z.string().trim().min(1).max(100),
     email: z.string().trim().toLowerCase().email().max(254),
-    currency: z.enum(['USD', 'EUR', 'GBP', 'CAD', 'AUD']),
+    currency: currencyCode,
+    startingBalance: startingBalanceInput.optional(),
   })
   .strict()
 export const loginInput = z

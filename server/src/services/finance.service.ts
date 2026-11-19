@@ -1,5 +1,13 @@
 import { Prisma, type PrismaClient } from '../generated/prisma/client.js'
 import { HttpError } from '../middleware/error-handler.js'
+import {
+  followingMonth,
+  lockRule,
+  monthStamp,
+  nextOnOrAfter,
+  processRecurring,
+  utcToday,
+} from './recurring.service.js'
 import { monthRange } from '../validators/finance.js'
 import type { z } from 'zod'
 import type { transactionInput, listQuery } from '../validators/finance.js'
@@ -8,7 +16,16 @@ Prisma.Decimal.set({ precision: 40 })
 
 type DB = Prisma.TransactionClient
 export const transactionInclude = {
-  category: { select: { id: true, name: true, type: true } },
+  recurring: { select: { id: true, active: true, day: true } },
+  category: {
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      isDefault: true,
+      isArchived: true,
+    },
+  },
 } as const
 export function serializeTransaction(
   row: Prisma.TransactionGetPayload<{ include: typeof transactionInclude }>,
@@ -97,6 +114,15 @@ export function createFinance(db: PrismaClient) {
     input: z.infer<typeof transactionInput>,
     id?: string,
   ) {
+    // Post already-due occurrences at their previous values before future edits.
+    if (id) {
+      const target = await db.transaction.findFirst({
+        where: { id, userId },
+        select: { recurringId: true },
+      })
+      if (target?.recurringId)
+        await processRecurring(db, { userId, ruleId: target.recurringId })
+    }
     return db.$transaction(async (tx) => {
       const existing = id
         ? await tx.transaction.findFirst({ where: { id, userId } })
@@ -104,7 +130,14 @@ export function createFinance(db: PrismaClient) {
       if (id && !existing)
         throw new HttpError(404, 'NOT_FOUND', 'Transaction not found')
       const category = await tx.category.findFirst({
-        where: { id: input.categoryId, userId, type: input.type },
+        where: {
+          id: input.categoryId,
+          userId,
+          type: input.type,
+          ...(existing?.categoryId === input.categoryId
+            ? {}
+            : { isArchived: false }),
+        },
       })
       if (!category)
         throw new HttpError(
@@ -122,14 +155,59 @@ export function createFinance(db: PrismaClient) {
           : (existing?.date ??
             new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z')),
       }
+      const wantsRepeat = input.recurring ?? Boolean(existing?.recurringId)
+      let recurringId = existing?.recurringId ?? null
+      let occurrenceMonth = existing?.occurrenceMonth ?? null
+      if (recurringId) {
+        const rule = await lockRule(tx, recurringId, userId)
+        // Omitted flag preserves the rule's current state for existing API clients.
+        const active = input.recurring ?? rule.active
+        const day =
+          data.date.getTime() === existing!.date.getTime()
+            ? rule.day
+            : data.date.getUTCDate()
+        const minimum = rule.nextDate > utcToday() ? rule.nextDate : utcToday()
+        const nextDate = nextOnOrAfter(minimum, day)
+        await tx.recurringRule.update({
+          where: { id: recurringId, userId },
+          data: {
+            amount: data.amount,
+            type: data.type,
+            categoryId: data.categoryId,
+            description: data.description,
+            day,
+            active: active && Boolean(nextDate),
+            ...(nextDate ? { nextDate } : {}),
+          },
+        })
+      } else if (wantsRepeat) {
+        const nextDate = followingMonth(data.date, data.date.getUTCDate())
+        const rule = await tx.recurringRule.create({
+          data: {
+            userId,
+            categoryId: data.categoryId,
+            amount: data.amount,
+            type: data.type,
+            description: data.description,
+            day: data.date.getUTCDate(),
+            nextDate: nextDate ?? data.date,
+            active: Boolean(nextDate),
+          },
+        })
+        recurringId = rule.id
+        occurrenceMonth = monthStamp(data.date)
+        await tx.recurringOccurrence.create({
+          data: { recurringId: rule.id, month: occurrenceMonth },
+        })
+      }
       const row = id
         ? await tx.transaction.update({
             where: { id, userId },
-            data,
+            data: { ...data, recurringId, occurrenceMonth },
             include: transactionInclude,
           })
         : await tx.transaction.create({
-            data: { ...data, userId },
+            data: { ...data, userId, recurringId, occurrenceMonth },
             include: transactionInclude,
           })
       return serializeTransaction(row)
@@ -164,6 +242,24 @@ export function createFinance(db: PrismaClient) {
         const date = monthRange(month, year)
         const all = await totals(tx, userId)
         const monthly = await totals(tx, userId, date)
+        const previousStart = new Date(date.gte)
+        previousStart.setUTCMonth(previousStart.getUTCMonth() - 1)
+        const previous = await totals(tx, userId, {
+          gte: previousStart,
+          lt: date.gte,
+        })
+        const expenseChangePercent = previous.expenses.isZero()
+          ? null
+          : monthly.expenses
+              .minus(previous.expenses)
+              .dividedBy(previous.expenses)
+              .times(100)
+              .toDecimalPlaces(2)
+              .toNumber()
+        const user = await tx.user.findUniqueOrThrow({
+          where: { id: userId },
+          select: { startingBalance: true },
+        })
         const categories = await tx.category.findMany({ where: { userId } })
         const breakdown = await tx.transaction.groupBy({
           by: ['categoryId'],
@@ -180,7 +276,12 @@ export function createFinance(db: PrismaClient) {
         return {
           month,
           year,
-          balance: all.income.minus(all.expenses).toFixed(2),
+          balance: user.startingBalance
+            .plus(all.income)
+            .minus(all.expenses)
+            .toFixed(2),
+          previousExpenses: previous.expenses.toFixed(2),
+          expenseChangePercent,
           income: monthly.income.toFixed(2),
           expenses: monthly.expenses.toFixed(2),
           budget: await budgetStatus(tx, userId, month, year, monthly.expenses),
