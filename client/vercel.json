@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://replace-with-your-toki-api.onrender.com/api/:path*"
+      "destination": "https://toki-api-1a96.onrender.com/api/:path*"
     },
     { "source": "/((?!api(?:/|$)|assets/).*)", "destination": "/index.html" }
   ],
