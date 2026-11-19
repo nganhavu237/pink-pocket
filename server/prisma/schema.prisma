@@ -28,6 +28,7 @@ model User {
   categories      Category[]
   budgets         Budget[]
   tasks           Task[]
+  mySpacePhoto    MySpacePhoto?
 }
 
 model Category {
@@ -131,4 +132,14 @@ model Task {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, completed, createdAt])
+}
+
+model MySpacePhoto {
+  userId    String   @id @db.Uuid
+  data      Bytes
+  width     Int
+  height    Int
+  version   String   @default(uuid()) @db.Uuid
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

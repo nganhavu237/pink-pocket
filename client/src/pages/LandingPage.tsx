@@ -8,7 +8,7 @@ import './LandingPage.css'
 export function LandingPage() {
   const { user } = useAuth()
   useEffect(() => {
-    document.title = 'Pink Pocket · Personal finance'
+    document.title = 'Toki · Expense tracker & daily planner'
   }, [])
   return (
     <div className="landing-page min-h-screen bg-surface">
@@ -58,7 +58,7 @@ export function LandingPage() {
         </section>
       </main>
       <footer className="border-t border-line px-6 py-6 text-center text-xs text-muted">
-        Pink Pocket
+        Toki
       </footer>
     </div>
   )

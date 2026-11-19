@@ -8,7 +8,7 @@ export function PageHeader({
   children?: ReactNode
 }) {
   useEffect(() => {
-    document.title = `${title} · Pink Pocket`
+    document.title = `${title} · Toki`
   }, [title])
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">

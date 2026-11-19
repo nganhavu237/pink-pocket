@@ -615,3 +615,175 @@ test('custom categories and display currencies persist safely', async ({
   )
   await expect(page.getByText('Temporary', { exact: true })).toHaveCount(0)
 })
+
+test('My Space photo upload, replace and remove persists privately', async ({
+  page,
+}, testInfo) => {
+  const email = `photo-${randomUUID()}@example.test`
+  accountEmails.push(email)
+  const sharp = requireServer('sharp')
+  const image = await sharp({
+    create: { width: 320, height: 180, channels: 3, background: '#F4A7B9' },
+  })
+    .png()
+    .toBuffer()
+  const replacement = await sharp({
+    create: { width: 200, height: 200, channels: 3, background: '#C8DDC3' },
+  })
+    .jpeg()
+    .toBuffer()
+  await page.goto('/register')
+  await page.getByLabel('Name', { exact: true }).fill('Photo Browser')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page
+    .getByLabel('Password', { exact: true })
+    .fill('Browser-test-password-123')
+  await page
+    .getByRole('button', { name: 'Create Account', exact: true })
+    .click()
+  await expect(
+    page.getByRole('heading', { name: 'Overview', exact: true }),
+  ).toBeVisible()
+  const widget = page.getByRole('region', { name: 'My Space', exact: true })
+  await expect(
+    widget.getByRole('button', { name: 'Upload photo', exact: true }),
+  ).toBeVisible()
+  const chooser = page.waitForEvent('filechooser')
+  await widget
+    .getByRole('button', { name: 'Upload photo', exact: true })
+    .click()
+  await (
+    await chooser
+  ).setFiles({ name: 'personal.png', mimeType: 'image/png', buffer: image })
+  const photo = widget.getByRole('img', { name: 'My Space photo', exact: true })
+  await expect(photo).toBeVisible()
+  await expect
+    .poll(() =>
+      photo.evaluate((element) => (element as HTMLImageElement).naturalWidth),
+    )
+    .toBeGreaterThan(0)
+  const firstSource = await photo.getAttribute('src')
+  expect(firstSource).toContain('/api/my-space/photo?v=')
+  const budget = page
+    .getByRole('heading', { name: 'Budget Progress', exact: true })
+    .locator('..')
+    .locator('..')
+  const budgetBox = await budget.boundingBox(),
+    photoBox = await widget.boundingBox()
+  expect(photoBox!.y).toBeGreaterThanOrEqual(budgetBox!.y + budgetBox!.height)
+  expect(photoBox!.x).toBe(budgetBox!.x)
+  expect(photoBox!.width).toBe(budgetBox!.width)
+  if (page.viewportSize()!.width >= 768) {
+    const breakdownBox = await page
+      .getByRole('heading', { name: 'Spending Breakdown', exact: true })
+      .locator('..')
+      .boundingBox()
+    expect(
+      Math.abs(
+        photoBox!.y + photoBox!.height - breakdownBox!.y - breakdownBox!.height,
+      ),
+    ).toBeLessThan(1)
+  }
+  await page.screenshot({
+    path: testInfo.outputPath('overview.png'),
+    fullPage: true,
+  })
+
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true)
+  await widget.screenshot({ path: testInfo.outputPath('my-space.png') })
+  await page.reload()
+  await expect(photo).toHaveAttribute('src', firstSource!)
+  await widget.locator('input[type=file]').setInputFiles({
+    name: 'unsupported.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from('<svg/>'),
+  })
+  await expect(widget.getByRole('alert')).toContainText('JPEG, PNG or WebP')
+  await expect(photo).toHaveAttribute('src', firstSource!)
+  await widget.locator('input[type=file]').setInputFiles({
+    name: 'large.png',
+    mimeType: 'image/png',
+    buffer: Buffer.alloc(5 * 1024 * 1024 + 1),
+  })
+  await expect(widget.getByRole('alert')).toContainText('up to 5 MB')
+  await expect(photo).toHaveAttribute('src', firstSource!)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  const replaceChooser = page.waitForEvent('filechooser')
+  await widget
+    .getByRole('button', { name: 'Replace photo', exact: true })
+    .click()
+  await (
+    await replaceChooser
+  ).setFiles({
+    name: 'replacement.jpg',
+    mimeType: 'image/jpeg',
+    buffer: replacement,
+  })
+  await expect(photo).not.toHaveAttribute('src', firstSource!)
+  await expect
+    .poll(() =>
+      photo.evaluate((element) => (element as HTMLImageElement).naturalWidth),
+    )
+    .toBeGreaterThan(0)
+  expect(
+    await photo.evaluate((element) => getComputedStyle(element).animationName),
+  ).toBe('none')
+  const replacementSource = await photo.getAttribute('src')
+  await page.getByRole('button', { name: 'Log Out', exact: true }).click()
+  await expect(page).toHaveURL(/\/login$/)
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page
+    .getByLabel('Password', { exact: true })
+    .fill('Browser-test-password-123')
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Overview', exact: true }),
+  ).toBeVisible()
+  await expect(photo).toHaveAttribute('src', replacementSource!)
+  await widget
+    .getByRole('button', { name: 'Remove photo', exact: true })
+    .click()
+  await expect(
+    widget.getByRole('button', { name: 'Upload photo', exact: true }),
+  ).toBeVisible()
+  await expect(photo).toHaveCount(0)
+  await page.reload()
+  await expect(
+    widget.getByRole('button', { name: 'Upload photo', exact: true }),
+  ).toBeVisible()
+  await expect(photo).toHaveCount(0)
+})
+
+test('Toki branding preserves the supplied logo on landing and authentication', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/')
+  await expect(page).toHaveTitle('Toki · Expense tracker & daily planner')
+  const brand = page.getByRole('link', { name: 'Toki home', exact: true })
+  await expect(brand.locator('svg')).toHaveAttribute(
+    'viewBox',
+    '110 395 1040 460',
+  )
+  await expect(brand.locator('image')).toHaveAttribute(
+    'href',
+    '/images/toki-logo.png',
+  )
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({
+    path: testInfo.outputPath('toki-landing.png'),
+    fullPage: true,
+    animations: 'disabled',
+  })
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true)
+  await page.goto('/login')
+  await expect(page).toHaveTitle('Log in · Toki')
+  await expect(brand).toBeVisible()
+})

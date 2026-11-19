@@ -5,7 +5,7 @@ import { ErrorMessage, LoadingState } from '../components/Feedback'
 import { useAuth } from '../hooks/useAuth'
 export function AuthPage({ register = false }: { register?: boolean }) {
   useEffect(() => {
-    document.title = `${register ? 'Create an account' : 'Log in'} · Pink Pocket`
+    document.title = `${register ? 'Create an account' : 'Log in'} · Toki`
   }, [register])
   const auth = useAuth()
   const navigate = useNavigate()
@@ -101,7 +101,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
           </button>
         </form>
         <p className="mt-5 text-center text-sm text-muted">
-          {register ? 'Already have an account?' : 'New to Pink Pocket?'}{' '}
+          {register ? 'Already have an account?' : 'New to Toki?'}{' '}
           <Link
             className="text-ink underline"
             to={register ? '/login' : '/register'}

@@ -1,0 +1,39 @@
+.my-space-media {
+  position: relative;
+  height: 144px;
+  flex-shrink: 0;
+}
+@media (min-width: 768px) {
+  .my-space-media {
+    height: auto;
+    min-height: 96px;
+    flex: 1;
+  }
+}
+.my-space-photo .my-space-action,
+.my-space-photo .my-space-placeholder {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+@keyframes my-space-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.my-space-photo .my-space-image {
+  animation: my-space-fade 240ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .my-space-photo .my-space-action,
+  .my-space-photo .my-space-placeholder {
+    transition: none;
+  }
+  .my-space-photo .my-space-image {
+    animation: none;
+  }
+}

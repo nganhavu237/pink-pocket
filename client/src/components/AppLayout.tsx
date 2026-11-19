@@ -42,7 +42,7 @@ export function AppLayout() {
         Skip to content
       </a>
       <aside className="border-b border-line bg-white p-5 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:border-r lg:border-b-0 lg:p-7">
-        <Brand />
+        <Brand sidebar />
         <nav
           aria-label="Main navigation"
           className="mt-5 grid grid-cols-2 gap-1 sm:flex sm:flex-wrap lg:flex-col lg:gap-2"

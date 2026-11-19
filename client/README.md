@@ -1,4 +1,4 @@
-# Pink Pocket client
+# Toki client
 
 React + TypeScript + Vite frontend. See the [project README](../README.md) for local
 setup, environment variables, API documentation, and test commands.

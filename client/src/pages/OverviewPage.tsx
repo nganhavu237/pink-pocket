@@ -16,6 +16,7 @@ import { PageHeader, MonthPicker } from '../components/PageHeader'
 import { ErrorMessage, LoadingState } from '../components/Feedback'
 import { BudgetProgress } from '../components/BudgetProgress'
 import { ExpenseChart } from '../components/Charts'
+import { MySpacePhoto } from '../components/MySpacePhoto'
 import { TransactionTable } from '../components/TransactionTable'
 export function OverviewPage() {
   const [month, setMonth] = useState(currentMonth)
@@ -84,19 +85,22 @@ export function OverviewPage() {
                 </article>
               ))}
             </section>
-            <div className="mt-5 grid items-start gap-5 md:grid-cols-2">
-              <section className="card p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="font-semibold">Budget Progress</h2>
-                  <Link
-                    className="text-sm underline underline-offset-4"
-                    to={`/budgets?month=${month}`}
-                  >
-                    Edit budget
-                  </Link>
-                </div>
-                <BudgetProgress budget={data.budget} currency={currency} />
-              </section>
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
+              <div className="flex min-w-0 flex-col gap-5">
+                <section className="card p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="font-semibold">Budget Progress</h2>
+                    <Link
+                      className="text-sm underline underline-offset-4"
+                      to={`/budgets?month=${month}`}
+                    >
+                      Edit budget
+                    </Link>
+                  </div>
+                  <BudgetProgress budget={data.budget} currency={currency} />
+                </section>
+                <MySpacePhoto key={user!.id} />
+              </div>
               <section className="card p-5">
                 <h2 className="mb-4 font-semibold">Spending Breakdown</h2>
                 <ExpenseChart items={data.breakdown} currency={currency} />

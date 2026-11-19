@@ -1,4 +1,4 @@
-# Pink Pocket API
+# Toki API
 
 Express 5 + TypeScript, Prisma 7, PostgreSQL, Zod, Vitest, and Supertest.
 Authentication, transaction CRUD, monthly budgets, dashboard, analytics, and account
@@ -256,3 +256,22 @@ session/Origin/CSRF checks and owner-scoped queries.
 Settings currency accepts a normalized ISO 4217 three-letter code supported by the
 runtime Intl currency list, including VND. Invalid/unknown codes return 400. No
 amounts are converted when currency changes. See the [Intl currency specification](https://402.ecma-international.org/13.0/#sec-availablecanonicalcurrencies).
+
+## Private My Space images
+
+The MySpacePhoto table stores one bounded image per user, with a cascading owner
+FK and size/dimension constraints. `src/services/photo.service.ts` validates and
+re-encodes images using Sharp; `src/routes/photo.routes.ts` is mounted behind
+existing authentication/Origin/CSRF checks. The JSON body's 16 KB limit remains
+unchanged; only the protected binary upload route accepts up to 5 MB.
+
+JPEG/PNG/WebP inputs must match their file signatures, decode successfully, and
+contain no more than 20 million pixels. Multi-page images are rejected. Images
+are auto-oriented, bounded to 1600 × 1600, stripped of embedded metadata, and
+stored as WebP. Failed validation never overwrites the prior image. Replacement
+uses an atomic upsert and changes the opaque version used for browser refreshes.
+
+The GET image endpoint always resolves the current session's owner, never a query
+parameter or filename. Responses use private/no-store, Vary: Cookie, nosniff and
+same-origin resource policy headers. No uploads directory is publicly served.
+See the root README for endpoint details and upload limits.

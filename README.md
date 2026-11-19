@@ -1,6 +1,6 @@
-# Pink Pocket
+# Toki
 
-A lightweight personal expense tracker with secure accounts, transaction tracking,
+A simple expense tracker and daily planner with secure accounts, transaction tracking,
 monthly budgets, and clear financial summaries. Built for local testing with native
 PostgreSQL on macOS; Docker is not required.
 
@@ -12,6 +12,7 @@ PostgreSQL on macOS; Docker is not required.
 - Monthly repeats with month-end handling, catch-up, and edit/stop controls in Transactions.
 - One overall budget per month, remaining amount, usage, and overspending alerts.
 - Dashboard with all-time balance, monthly totals, previous-month expense comparison, recent transactions, and category spending.
+- Private My Space photo widget below Budget Progress, with upload/replace/remove controls.
 - Six-month income/expense charts and category breakdowns.
 - Account name/email, starting balance, VND and custom 3-letter display currency settings.
 - Custom income/expense categories with safe rename/delete controls.
@@ -66,13 +67,13 @@ Existing ignored `server/.env` and `.env.test` files were configured locally.
 For a fresh checkout, copy the corresponding example files and supply your own
 PostgreSQL password and random JWT secret. Do not overwrite existing configuration.
 
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | PostgreSQL URL; development DB `pink_pocket`, test DB `pink_pocket_test` |
-| `JWT_SECRET` | Random signing secret, at least 32 characters (`openssl rand -hex 48`) |
+| Variable           | Purpose                                                                       |
+| ------------------ | ----------------------------------------------------------------------------- |
+| `DATABASE_URL`     | PostgreSQL URL; development DB `pink_pocket`, test DB `pink_pocket_test`      |
+| `JWT_SECRET`       | Random signing secret, at least 32 characters (`openssl rand -hex 48`)        |
 | `FRONTEND_ORIGINS` | Comma-separated exact browser origins; local examples include ports 5173/5174 |
-| `HOST`, `PORT` | API listener; defaults `127.0.0.1`, `3001` |
-| `NODE_ENV` | `development`, `test`, or `production` |
+| `HOST`, `PORT`     | API listener; defaults `127.0.0.1`, `3001`                                    |
+| `NODE_ENV`         | `development`, `test`, or `production`                                        |
 
 The frontend calls `/api` through Vite's proxy; no frontend secrets or environment
 file are needed. Optional `API_PROXY_TARGET` changes the proxy target for isolated
@@ -112,24 +113,24 @@ are removed during cleanup. Schema tests roll back their fixtures.
 Successful responses use `{ "data": ... }`; errors use
 `{ "error": { "code": "...", "message": "..." } }`.
 
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| GET | `/api/health` | Database readiness |
-| POST | `/api/auth/register`, `/api/auth/login` | Start session |
-| GET | `/api/auth/me` | Current user and CSRF token |
-| POST | `/api/auth/logout` | Revoke session |
-| GET, POST | `/api/categories` | List categories or create an owned custom category |
-| PUT, DELETE | `/api/categories/:id` | Rename or safely delete a custom category |
-| GET, POST | `/api/tasks` | List or create Planner tasks |
-| PUT, DELETE | `/api/tasks/:id` | Update task fields/completion or delete |
-| GET, POST | `/api/transactions` | List or create (`recurring: true` enables monthly repeat) |
-| GET | `/api/recurring` | Active monthly repeats |
-| PUT, DELETE | `/api/recurring/:id` | Update future schedule or stop it |
-| PUT, DELETE | `/api/transactions/:id` | Update or delete |
-| GET, PUT | `/api/budgets` | Read or upsert monthly budget |
-| GET | `/api/dashboard/summary` | Balance, totals, budget, recent records, breakdown |
-| GET | `/api/analytics` | Six monthly income/expense totals |
-| PUT | `/api/settings` | Update account/display currency |
+| Method      | Endpoint                                | Purpose                                                   |
+| ----------- | --------------------------------------- | --------------------------------------------------------- |
+| GET         | `/api/health`                           | Database readiness                                        |
+| POST        | `/api/auth/register`, `/api/auth/login` | Start session                                             |
+| GET         | `/api/auth/me`                          | Current user and CSRF token                               |
+| POST        | `/api/auth/logout`                      | Revoke session                                            |
+| GET, POST   | `/api/categories`                       | List categories or create an owned custom category        |
+| PUT, DELETE | `/api/categories/:id`                   | Rename or safely delete a custom category                 |
+| GET, POST   | `/api/tasks`                            | List or create Planner tasks                              |
+| PUT, DELETE | `/api/tasks/:id`                        | Update task fields/completion or delete                   |
+| GET, POST   | `/api/transactions`                     | List or create (`recurring: true` enables monthly repeat) |
+| GET         | `/api/recurring`                        | Active monthly repeats                                    |
+| PUT, DELETE | `/api/recurring/:id`                    | Update future schedule or stop it                         |
+| PUT, DELETE | `/api/transactions/:id`                 | Update or delete                                          |
+| GET, PUT    | `/api/budgets`                          | Read or upsert monthly budget                             |
+| GET         | `/api/dashboard/summary`                | Balance, totals, budget, recent records, breakdown        |
+| GET         | `/api/analytics`                        | Six monthly income/expense totals                         |
+| PUT         | `/api/settings`                         | Update account/display currency                           |
 
 Monthly endpoints accept `month` and `year`. Transaction lists additionally accept
 `categoryId`, `type`, `search`, `page`, and `pageSize` (maximum 100). Supply both
@@ -176,14 +177,14 @@ Verified locally with native PostgreSQL:
 
 - Frontend and backend production builds pass.
 - Source and test TypeScript checks pass; frontend ESLint and Prettier checks pass.
-- 17 isolated API/environment tests and 115 PostgreSQL/API integration tests pass.
+- 17 isolated API/environment tests and 128 PostgreSQL/API integration tests pass.
 - Desktop and mobile Chrome workflows pass: registration, route protection,
   transaction CRUD, budget progress, dashboard/chart values, settings, logout,
   session persistence, and login errors. Additional desktop/mobile workflows cover
   repeat editing/stopping, starting-balance persistence, and month comparisons.
   Captured layouts were visually reviewed.
 - Live website/API proxy and database health checks pass; logged-out session access
-  correctly returns 401. All five migrations are applied without resetting data.
+  correctly returns 401. All six migrations are applied without resetting data.
 
 The frontend dependency installation still reports 10 moderate advisories through
 development tooling inherited from the initial ESLint setup. No forced package
@@ -270,3 +271,32 @@ retires existing Other Income categories from new transaction choices without
 deleting their IDs, transactions, or schedules. Existing entries using them remain
 viewable, filterable, and editable. They are hidden from Settings category controls
 and new selections; all expense defaults remain available.
+
+## My Space photo
+
+Overview includes a personal photo card below Budget Progress. Select the upload
+placeholder to choose a photo; the pencil icon replaces it and the trash icon
+removes it. The photo is saved to the account and persists across refresh/login.
+
+Accepted inputs are still JPEG, PNG, and WebP, up to **5 MB** and **20 megapixels**.
+The backend verifies file signatures and fully decodes the image, applies its
+orientation, resizes it within 1600 × 1600 without enlargement, and re-encodes it
+as WebP without embedded metadata. Invalid uploads leave the previous photo intact.
+Sharp is used only on the backend; there is no new frontend dependency.
+
+One image per user is stored in PostgreSQL. Metadata, image reads, replacement,
+and removal use authenticated owner-scoped endpoints; no public file directory or
+user-supplied file path exists. Image responses are private/no-store and marked
+nosniff/same-origin. Upload/removal use the existing Origin and CSRF protection.
+Uploads are limited to 20 per IP per 15 minutes. Include the database in backups
+if personal photos should be retained when moving the local setup.
+
+| Method | Endpoint              | Purpose                                             |
+| ------ | --------------------- | --------------------------------------------------- |
+| GET    | `/api/my-space`       | Current photo metadata or null                      |
+| GET    | `/api/my-space/photo` | Private WebP image, or 404                          |
+| PUT    | `/api/my-space/photo` | Raw JPEG/PNG/WebP bytes, with matching Content-Type |
+| DELETE | `/api/my-space/photo` | Remove the current user's photo                     |
+
+The additive migration creates a separate MySpacePhoto table without changing
+financial records. The photo widget respects reduced-motion preferences.

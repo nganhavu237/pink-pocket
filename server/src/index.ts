@@ -18,7 +18,7 @@ async function start() {
   await checkDatabase(prisma)
   const stopWorker = startRecurringWorker(prisma)
   const server = app.listen(env.PORT, env.HOST, () => {
-    console.info(`Pink Pocket API listening on http://${env.HOST}:${env.PORT}`)
+    console.info(`Toki API listening on http://${env.HOST}:${env.PORT}`)
   })
   server.on('error', () => {
     console.error('Unable to start HTTP server. Check HOST and PORT.')

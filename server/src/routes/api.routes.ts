@@ -27,6 +27,7 @@ import {
   utcToday,
 } from '../services/recurring.service.js'
 import { categoryRoutes } from './category.routes.js'
+import { photoRoutes } from './photo.routes.js'
 import { taskRoutes } from './task.routes.js'
 import { HttpError } from '../middleware/error-handler.js'
 
@@ -82,6 +83,7 @@ export function apiRoutes(
   })
   router.use(auth.requireAuth)
   router.use('/tasks', taskRoutes(db))
+  router.use('/my-space', photoRoutes(db))
   const owner = (res: Parameters<RequestHandler>[1]): string =>
     res.locals.session.userId
   router.get('/auth/me', (_req, res) =>
